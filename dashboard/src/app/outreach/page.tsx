@@ -1,0 +1,74 @@
+import React from 'react';
+import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
+
+export default function OutreachPage() {
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      <Sidebar activePath="/outreach" />
+      <main className="pl-64">
+        <Header />
+        <div className="p-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-slate-800">Automated Outreach</h1>
+            <p className="text-slate-500 mt-1">AI-generated personalized sequences for candidates.</p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h3 className="font-bold text-slate-800 mb-4">Active Campaigns</h3>
+                <div className="space-y-4">
+                  <CampaignRow name="Loan Officer Q4 Hunt" candidates={45} responseRate="24%" status="Active" />
+                  <CampaignRow name="Underwriting Experts" candidates={12} responseRate="18%" status="Paused" />
+                  <CampaignRow name="Fintech Devs" candidates={8} responseRate="32%" status="Completed" />
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h3 className="font-bold text-slate-800 mb-4">AI Template Preview</h3>
+                <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 italic text-sm text-slate-600 leading-relaxed">
+                  "Hi [Candidate Name], I noticed your impressive background in [Skill] at [Company]. Given your [Score]% match for our Senior Loan Officer role, I'd love to discuss how your expertise in [Industry] aligns with our Q4 goals..."
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm h-fit">
+              <h3 className="font-bold text-slate-800 mb-4">Outreach Metrics</h3>
+              <div className="space-y-6">
+                <div className="text-center p-4 bg-blue-50 rounded-2xl">
+                  <p className="text-3xl font-bold text-blue-600">842</p>
+                  <p className="text-xs font-bold text-blue-400 uppercase mt-1">Emails Sent</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-emerald-50 rounded-2xl">
+                    <p className="text-xl font-bold text-emerald-600">12%</p>
+                    <p className="text-[10px] font-bold text-emerald-400 uppercase mt-1">Open Rate</p>
+                  </div>
+                  <div className="text-center p-4 bg-amber-50 rounded-2xl">
+                    <p className="text-xl font-bold text-amber-600">4%</p>
+                    <p className="text-[10px] font-bold text-amber-400 uppercase mt-1">Reply Rate</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function CampaignRow({ name, candidates, responseRate, status }: { name: string, candidates: number, responseRate: string, status: string }) {
+  return (
+    <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+      <div>
+        <p className="font-bold text-slate-800">{name}</p>
+        <p className="text-xs text-slate-400 font-medium">{candidates} candidates • {responseRate} response</p>
+      </div>
+      <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+        {status}
+      </span>
+    </div>
+  );
+}
