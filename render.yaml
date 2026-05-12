@@ -3,7 +3,6 @@ services:
   - type: web
     name: finhire-backend
     runtime: python
-    region: oregon
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
@@ -26,7 +25,6 @@ services:
   - type: web
     name: finhire-dashboard
     runtime: node
-    region: oregon
     rootDir: dashboard
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -34,12 +32,11 @@ services:
       - key: NEXT_PUBLIC_API_URL
         value: https://finhire-backend.onrender.com/api/v1
 
-databases:
-  - name: finhire-db
-    region: oregon
+  # Redis Service
+  - type: redis
+    name: finhire-redis
     plan: free
 
-redis:
-  - name: finhire-redis
-    region: oregon
+databases:
+  - name: finhire-db
     plan: free
