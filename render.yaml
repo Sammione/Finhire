@@ -12,16 +12,11 @@ services:
         fromDatabase:
           name: finhire-db
           property: connectionString
-      - key: REDIS_HOST
+      - key: REDIS_URL
         fromService:
           name: finhire-redis
           type: redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          name: finhire-redis
-          type: redis
-          property: port
+          property: connectionString
       - key: OPENAI_API_KEY
         sync: false
       - key: SECRET_KEY
@@ -48,4 +43,3 @@ redis:
   - name: finhire-redis
     region: oregon
     plan: free
-    ipAllowList: []

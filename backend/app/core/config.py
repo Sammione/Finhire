@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # Redis
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+    REDIS_URL: Optional[str] = None
 
     # Elasticsearch
     ELASTICSEARCH_URL: str = "http://localhost:9200"
