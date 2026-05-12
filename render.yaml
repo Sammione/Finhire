@@ -1,7 +1,9 @@
 services:
+  # Backend Service
   - type: web
     name: finhire-backend
     runtime: python
+    rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -9,13 +11,37 @@ services:
         fromDatabase:
           name: finhire-db
           property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          name: finhire-redis
+          type: redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          name: finhire-redis
+          type: redis
+          property: port
       - key: OPENAI_API_KEY
         sync: false # Set in Render Dashboard
       - key: SECRET_KEY
         generateValue: true
-      - key: PYTHON_VERSION
-        value: 3.11.0
+
+  # Dashboard Service (Next.js)
+  - type: web
+    name: finhire-dashboard
+    runtime: node
+    rootDir: dashboard
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://finhire-backend.onrender.com/api/v1 # Update this if your backend name differs
 
 databases:
   - name: finhire-db
     plan: free
+
+redis:
+  - name: finhire-redis
+    plan: free
+    ipAllowList: [] # Only allow internal connections
