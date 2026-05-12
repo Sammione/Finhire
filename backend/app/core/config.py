@@ -34,6 +34,7 @@ class Settings(BaseSettings):
             if url.startswith("postgres://"):
                 url = url.replace("postgres://", "postgresql://", 1)
             return url
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
+        # Default to local SQLite for easy testing without a managed database
+        return "sqlite:///./finhireiq.db"
 
 settings = Settings()
