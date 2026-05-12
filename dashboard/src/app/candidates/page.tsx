@@ -1,8 +1,32 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function CandidatesPage() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setLoading(true);
+    try {
+      const data = await fetchWithAuth(`/candidates/search?q=${encodeURIComponent(query)}`);
+      setResults(data);
+    } catch (error) {
+      console.error("Search failed", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    handleSearch();
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/candidates" />
@@ -17,39 +41,39 @@ export default function CandidatesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Filters */}
             <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                <h3 className="font-bold text-slate-800 mb-4">Filters</h3>
+              <form onSubmit={handleSearch} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h3 className="font-bold text-slate-800 mb-4">Search & Filters</h3>
                 
                 <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Keywords</label>
+                    <input 
+                      type="text" 
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Skills, roles, company..." 
+                      className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" 
+                    />
+                  </div>
+                  
                   <div>
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Location</label>
                     <input type="text" placeholder="e.g. New York, Remote" className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
                   </div>
                   
-                  <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Experience (Years)</label>
-                    <div className="flex gap-2 mt-1">
-                      <input type="number" placeholder="Min" className="w-1/2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
-                      <input type="number" placeholder="Max" className="w-1/2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Skills</label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-md border border-blue-100 uppercase">Underwriting</span>
-                      <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-md border border-blue-100 uppercase">Risk Analysis</span>
-                      <span className="px-2 py-1 bg-slate-50 text-slate-400 text-[10px] font-bold rounded-md border border-slate-100 uppercase">+ Add Skill</span>
-                    </div>
-                  </div>
+                  <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-colors">
+                    Run Analysis
+                  </button>
                 </div>
-              </div>
+              </form>
             </div>
 
             {/* Results */}
             <div className="lg:col-span-3 space-y-4">
               <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-500">Showing <span className="text-slate-800 font-bold">128</span> top matches</span>
+                <span className="text-sm font-semibold text-slate-500">
+                  {loading ? 'Searching...' : `Showing ${results.length} matches`}
+                </span>
                 <div className="flex gap-2">
                   <select className="bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold px-3 py-1.5 outline-none">
                     <option>Sort by: Match Score</option>
@@ -58,31 +82,25 @@ export default function CandidatesPage() {
                 </div>
               </div>
 
-              {/* Candidate Cards */}
-              <CandidateCard 
-                name="Sarah Jenkins" 
-                role="Senior Loan Officer" 
-                location="Seattle, WA" 
-                score={0.98}
-                summary="Highly experienced loan officer with 8+ years in the fintech sector. Specialized in mortgage underwriting and high-risk assessment."
-                skills={["Mortgage", "Underwriting", "Fintech", "CRM"]}
-              />
-              <CandidateCard 
-                name="Robert Wilson" 
-                role="Financial Analyst" 
-                location="San Francisco, CA" 
-                score={0.92}
-                summary="Expert in financial modeling and credit risk. Former VP at Chase Bank with a focus on commercial lending."
-                skills={["Credit Risk", "Lending", "SQL", "Bloomberg"]}
-              />
-              <CandidateCard 
-                name="Linda Chen" 
-                role="Mortgage Consultant" 
-                location="Remote" 
-                score={0.87}
-                summary="Passionate consultant with a proven track record in increasing loan approval rates by 25%."
-                skills={["Sales", "Consulting", "Mortgage", "Financing"]}
-              />
+              {loading ? (
+                <div className="py-20 text-center text-slate-400">Processing AI semantic search...</div>
+              ) : results.length > 0 ? (
+                results.map((c: any) => (
+                  <CandidateCard 
+                    key={c.id}
+                    name={c.full_name} 
+                    role={c.headline} 
+                    location={c.location} 
+                    score={c.match_score}
+                    summary={c.summary}
+                    skills={c.skills}
+                  />
+                ))
+              ) : (
+                <div className="py-20 text-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
+                  No candidates found matching your criteria. Try expanding your search.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -91,8 +109,7 @@ export default function CandidatesPage() {
   );
 }
 
-function CandidateCard({ name, role, location, score, summary, skills }: { name: string, role: string, location: string, score: number, summary: string, skills: string[] }) {
-  const percentage = Math.round(score * 100);
+function CandidateCard({ name, role, location, score, summary, skills }: { name: string, role: string, location: string, score: string, summary: string, skills: string[] }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:border-blue-300 transition-all cursor-pointer group">
       <div className="flex justify-between items-start mb-4">
@@ -110,7 +127,7 @@ function CandidateCard({ name, role, location, score, summary, skills }: { name:
         </div>
         <div className="text-right">
           <div className="inline-block px-3 py-1 bg-blue-600 rounded-full text-white text-xs font-bold shadow-lg shadow-blue-100">
-            {percentage}% Match
+            {score} Match
           </div>
           <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest">Confidence: High</p>
         </div>
@@ -122,7 +139,7 @@ function CandidateCard({ name, role, location, score, summary, skills }: { name:
 
       <div className="flex justify-between items-center">
         <div className="flex gap-2">
-          {skills.map(skill => (
+          {skills?.map(skill => (
             <span key={skill} className="px-2 py-1 bg-slate-50 text-slate-500 text-[10px] font-bold rounded-md border border-slate-100 uppercase">
               {skill}
             </span>

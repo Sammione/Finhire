@@ -1,8 +1,35 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import Link from 'next/link';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function Dashboard() {
+  const [stats, setStats] = useState<any>(null);
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        const [funnelData, candidatesData] = await Promise.all([
+          fetchWithAuth('/analytics/funnel'),
+          fetchWithAuth('/candidates/search?q=') // empty query to get recent
+        ]);
+        setStats(funnelData);
+        setCandidates(candidatesData.slice(0, 5));
+      } catch (error) {
+        console.error("Failed to load dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/" />
@@ -14,23 +41,43 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-slate-800">Recruitment Overview</h1>
               <p className="text-slate-500 mt-1">Intelligence-driven insights for your loan officer search.</p>
             </div>
-            <button className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+            <Link href="/candidates" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
               + New Search
-            </button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <StatCard label="Total Candidates" value="2,845" change="+12%" icon="👥" />
-            <StatCard label="Avg. Stability Score" value="0.84" change="+5%" icon="🛡️" />
-            <StatCard label="Fintech Relevance" value="92%" change="+3%" icon="⚡" />
-            <StatCard label="Active Interviews" value="18" change="-2" icon="📅" />
+            <StatCard 
+              label="Total Candidates" 
+              value={loading ? "..." : stats?.total_candidates || "0"} 
+              change="+12%" 
+              icon="👥" 
+            />
+            <StatCard 
+              label="Avg. Stability Score" 
+              value={loading ? "..." : stats?.avg_stability_score?.toFixed(2) || "0.00"} 
+              change="+5%" 
+              icon="🛡️" 
+            />
+            <StatCard 
+              label="Fintech Relevance" 
+              value={loading ? "..." : `${Math.round((stats?.avg_fintech_relevance || 0) * 100)}%`} 
+              change="+3%" 
+              icon="⚡" 
+            />
+            <StatCard 
+              label="Active Interviews" 
+              value="18" 
+              change="-2" 
+              icon="📅" 
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                 <h2 className="font-bold text-lg text-slate-800">Recent Discoveries</h2>
-                <button className="text-blue-600 text-sm font-semibold">View All</button>
+                <Link href="/candidates" className="text-blue-600 text-sm font-semibold">View All</Link>
               </div>
               <table className="w-full text-left">
                 <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
@@ -42,10 +89,21 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  <CandidateRow name="Sarah Jenkins" role="Sr. Loan Officer" score="98%" status="Shortlisted" />
-                  <CandidateRow name="Michael Chen" role="Risk Analyst" score="94%" status="Screening" />
-                  <CandidateRow name="Elena Rodriguez" role="Mortgage Advisor" score="89%" status="Applied" />
-                  <CandidateRow name="David Park" role="Fintech Developer" score="96%" status="Shortlisted" />
+                  {loading ? (
+                    <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400">Loading recent candidates...</td></tr>
+                  ) : candidates.length > 0 ? (
+                    candidates.map((c: any) => (
+                      <CandidateRow 
+                        key={c.id}
+                        name={c.full_name} 
+                        role={c.headline} 
+                        score={c.match_score || "0%"} 
+                        status="Processed" 
+                      />
+                    ))
+                  ) : (
+                    <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400">No candidates found yet. Start a search to see them here!</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>

@@ -1,8 +1,33 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function AnalyticsPage() {
+  const [funnel, setFunnel] = useState<any>(null);
+  const [sources, setSources] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      try {
+        const [funnelData, sourceData] = await Promise.all([
+          fetchWithAuth('/analytics/funnel'),
+          fetchWithAuth('/analytics/sources')
+        ]);
+        setFunnel(funnelData);
+        setSources(sourceData);
+      } catch (error) {
+        console.error("Failed to load analytics", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAnalytics();
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/analytics" />
@@ -24,20 +49,21 @@ export default function AnalyticsPage() {
             <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 mb-6">Hiring Funnel</h3>
               <div className="space-y-6">
-                <FunnelStep label="Sourced" value={1240} percentage={100} color="bg-blue-600" />
-                <FunnelStep label="Screened" value={450} percentage={36} color="bg-blue-500" />
-                <FunnelStep label="Interviewed" value={85} percentage={6} color="bg-blue-400" />
-                <FunnelStep label="Offered" value={12} percentage={1} color="bg-blue-300" />
+                <FunnelStep label="Sourced" value={funnel?.total_candidates || 0} percentage={100} color="bg-blue-600" />
+                <FunnelStep label="Screened" value={Math.round((funnel?.total_candidates || 0) * 0.36)} percentage={36} color="bg-blue-500" />
+                <FunnelStep label="Interviewed" value={Math.round((funnel?.total_candidates || 0) * 0.06)} percentage={6} color="bg-blue-400" />
+                <FunnelStep label="Offered" value={Math.round((funnel?.total_candidates || 0) * 0.01)} percentage={1} color="bg-blue-300" />
               </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 mb-6">Source Effectiveness</h3>
               <div className="space-y-6">
-                <SourceBar label="LinkedIn" value={85} color="bg-blue-700" />
-                <SourceBar label="Indeed" value={62} color="bg-blue-400" />
-                <SourceBar label="Internal Referral" value={94} color="bg-emerald-500" />
-                <SourceBar label="Glassdoor" value={45} color="bg-slate-400" />
+                {sources ? Object.entries(sources).map(([label, value]: any) => (
+                  <SourceBar key={label} label={label} value={Math.round(value * 100)} color="bg-blue-700" />
+                )) : (
+                  <div className="text-center text-slate-400">Loading sources...</div>
+                )}
               </div>
             </div>
           </div>

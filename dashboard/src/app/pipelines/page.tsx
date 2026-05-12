@@ -1,8 +1,28 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function PipelinesPage() {
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadCandidates = async () => {
+      try {
+        const data = await fetchWithAuth('/candidates/search?q=');
+        setCandidates(data);
+      } catch (error) {
+        console.error("Failed to load pipeline candidates", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCandidates();
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/pipelines" />
@@ -14,16 +34,18 @@ export default function PipelinesPage() {
               <h1 className="text-3xl font-bold text-slate-800">Recruitment Pipelines</h1>
               <p className="text-slate-500 mt-1">Manage your active candidate hiring stages.</p>
             </div>
-            <button className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+            <a href="/pipelines/create" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
               + Create Pipeline
-            </button>
+            </a>
           </div>
 
           <div className="flex gap-6 overflow-x-auto pb-4">
-            <PipelineColumn title="Sourced" count={12}>
-              <PipelineCard name="Alice Walker" score="98%" time="2h ago" />
-              <PipelineCard name="Tom Harris" score="95%" time="5h ago" />
-              <PipelineCard name="Sam Smith" score="92%" time="1d ago" />
+            <PipelineColumn title="Sourced" count={candidates.length}>
+              {loading ? (
+                <div className="p-4 text-center text-xs text-slate-400">Loading...</div>
+              ) : candidates.map((c: any) => (
+                <PipelineCard key={c.id} name={c.full_name} score={c.match_score} time="Just now" />
+              ))}
             </PipelineColumn>
 
             <PipelineColumn title="Screening" count={5}>
@@ -38,10 +60,6 @@ export default function PipelinesPage() {
 
             <PipelineColumn title="Offer" count={1}>
               <PipelineCard name="David Park" score="97%" time="4d ago" />
-            </PipelineColumn>
-
-            <PipelineColumn title="Hired" count={28}>
-              {/* Empty for demo */}
             </PipelineColumn>
           </div>
         </div>
