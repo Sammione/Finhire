@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any
 
 class CandidateIntelligencePipeline:
-    async def process_raw_profile(self, db: Session, raw_text: str) -> Candidate:
+    async def process_raw_profile(self, db: Any, raw_text: str) -> Dict:
         """
         Complete pipeline: Parse -> Score -> Index
         """
@@ -13,65 +13,54 @@ class CandidateIntelligencePipeline:
         profile_data = await ai_service.parse_profile(raw_text)
         
         # 2. Create Candidate record
-        candidate = Candidate(
-            first_name=profile_data.get("first_name"),
-            last_name=profile_data.get("last_name"),
-            headline=profile_data.get("headline"),
-            location=profile_data.get("location"),
-            summary=profile_data.get("summary"),
-            raw_data={"original_text": raw_text}
-        )
-        db.add(candidate)
-        db.flush() # Get ID
+        candidate_data = {
+            "first_name": profile_data.get("first_name"),
+            "last_name": profile_data.get("last_name"),
+            "headline": profile_data.get("headline"),
+            "location": profile_data.get("location"),
+            "summary": profile_data.get("summary"),
+            "raw_data": {"original_text": raw_text}
+        }
+        candidate = db.save_candidate(candidate_data)
         
-        # 3. Add Experience
-        for exp in profile_data.get("experience", []):
-            experience = Experience(
-                candidate_id=candidate.id,
-                title=exp.get("title"),
-                company=exp.get("company"),
-                description=exp.get("description"),
-                is_fintech=exp.get("is_fintech", False)
-            )
-            db.add(experience)
+        # 3. Add Experience (Mocking relation)
+        candidate["experience"] = profile_data.get("experience", [])
             
         # 4. Calculate Scores
         intelligence_data = await ai_service.calculate_candidate_score(profile_data)
         
         # 5. Generate Embedding
         embedding = await ai_service.generate_embedding(
-            f"{candidate.headline} {candidate.summary} " + 
-            " ".join([e.get("description", "") for e in profile_data.get("experience", [])])
+            f"{candidate['headline']} {candidate['summary']} " + 
+            " ".join([e.get("description", "") for e in candidate['experience']])
         )
         
         # 6. Save Intelligence
-        intelligence = Intelligence(
-            candidate_id=candidate.id,
-            overall_score=intelligence_data.get("overall_score"),
-            stability_score=intelligence_data.get("stability_score"),
-            relevance_score=intelligence_data.get("relevance_score"),
-            ai_summary=intelligence_data.get("ai_summary"),
-            skills=profile_data.get("skills", []),
-            risk_indicators=intelligence_data.get("risk_indicators", []),
-            embedding=embedding
-        )
-        db.add(intelligence)
-        
-        # 7. Commit to DB
-        db.commit()
-        db.refresh(candidate)
-        
-        # 8. Index in Search Engine
-        search_data = {
-            "full_name": f"{candidate.first_name} {candidate.last_name}",
-            "headline": candidate.headline,
-            "location": candidate.location,
-            "skills": intelligence.skills,
-            "summary": candidate.summary,
-            "experience_text": " ".join([e.description for e in candidate.experience]),
+        intelligence = {
+            "candidate_id": candidate["id"],
+            "overall_score": intelligence_data.get("overall_score"),
+            "stability_score": intelligence_data.get("stability_score"),
+            "relevance_score": intelligence_data.get("relevance_score"),
+            "ai_summary": intelligence_data.get("ai_summary"),
+            "skills": profile_data.get("skills", []),
+            "risk_indicators": intelligence_data.get("risk_indicators", []),
             "embedding": embedding
         }
-        await search_service.index_candidate(str(candidate.id), search_data)
+        db.save_intelligence(candidate["id"], intelligence)
+        candidate["intelligence"] = intelligence
+        
+        # 7. Index in Search Engine (Mocked)
+        search_data = {
+            "id": candidate["id"],
+            "full_name": f"{candidate['first_name']} {candidate['last_name']}",
+            "headline": candidate['headline'],
+            "location": candidate['location'],
+            "skills": intelligence['skills'],
+            "summary": candidate['summary'],
+            "experience_text": " ".join([e.get("description", "") for e in candidate['experience']]),
+            "match_score": f"{int(intelligence['overall_score'] * 100)}%"
+        }
+        await search_service.index_candidate(candidate["id"], search_data)
         
         return candidate
 
