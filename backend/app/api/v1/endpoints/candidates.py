@@ -9,27 +9,26 @@ router = APIRouter()
 
 @router.post("/ingest")
 async def ingest_candidate(
-    raw_text: str,
-    db: Any = Depends(deps.get_db)
+    raw_text: str
 ) -> Any:
     """
     Ingest a raw professional profile text and run the AI intelligence pipeline.
     """
     try:
-        candidate = await intelligence_pipeline.process_raw_profile(db, raw_text)
+        candidate = await intelligence_pipeline.process_raw_profile(None, raw_text)
         return {"id": candidate["id"], "status": "processed"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/search")
 async def search_candidates(
-    q: str = Query(..., description="Search query"),
+    q: Optional[str] = Query(None, description="Search query"),
     location: Optional[str] = None,
     skills: Optional[List[str]] = Query(None),
     min_score: float = 0.0
 ) -> Any:
     """
-    Search for candidates using semantic and keyword matching.
+    Search for candidates using mock storage.
     """
     filters = {}
     if location:
@@ -37,18 +36,18 @@ async def search_candidates(
     if skills:
         filters["skills"] = skills
         
-    results = await search_service.search_candidates(q, filters)
+    results = await search_service.search_candidates(q or "", filters)
     return results
 
 @router.get("/{candidate_id}")
 async def get_candidate_details(
-    candidate_id: str,
-    db: Any = Depends(deps.get_db)
+    candidate_id: str
 ) -> Any:
     """
-    Get detailed candidate intelligence and profile.
+    Get detailed candidate intelligence and profile from mock storage.
     """
-    candidate = db.get_candidate(candidate_id)
+    candidate = search_service.candidates.get(candidate_id)
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return candidate
+

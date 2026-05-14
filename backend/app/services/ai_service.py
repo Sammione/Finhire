@@ -1,69 +1,49 @@
 import openai
 from openai import AsyncOpenAI
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer # Removed for demo
 from app.core.config import settings
 from typing import List, Dict, Any
 import json
 
 class AIService:
     def __init__(self):
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        # self.model = SentenceTransformer('all-MiniLM-L6-v2') # Disabled for demo
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
     async def generate_embedding(self, text: str) -> List[float]:
-        """Generate semantic embedding for search."""
-        embedding = self.model.encode(text)
-        return embedding.tolist()
+        """Mock semantic embedding for search."""
+        # Return a dummy vector of 384 dimensions
+        return [0.0] * 384
+
 
     async def parse_profile(self, raw_text: str) -> Dict[str, Any]:
-        """Use LLM to extract structured data from professional profiles."""
-        prompt = f"""
-        Extract professional information from the following text and return it as a JSON object.
-        Focus on: first_name, last_name, headline, location, summary, skills, and experience list.
-        For experience, include: title, company, dates, description, and whether it is in the financial/loan industry.
+        """Mock LLM parsing for demo."""
+        # Simulate extraction from the first few words if possible
+        words = raw_text.split()
+        first_name = words[0] if len(words) > 0 else "Demo"
+        last_name = words[1] if len(words) > 1 else "Candidate"
         
-        Text:
-        {raw_text}
-        """
-        
-        response = await self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are an expert recruitment data extraction assistant. Return only valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"}
-        )
-        
-        return json.loads(response.choices[0].message.content)
+        return {
+            "first_name": first_name,
+            "last_name": last_name,
+            "headline": "Senior Loan Officer",
+            "location": "New York, NY",
+            "summary": f"Structured data extracted for {raw_text[:30]}...",
+            "skills": ["Mortgage", "Lending", "Risk Analysis"],
+            "experience": [
+                {"title": "Senior Loan Officer", "company": "Bank of America", "description": "Managed high-value loan portfolios."}
+            ]
+        }
 
     async def calculate_candidate_score(self, profile: Dict[str, Any]) -> Dict[str, float]:
-        """
-        AI-driven scoring algorithm.
-        Calculates stability, fintech relevance, and overall fit.
-        """
-        prompt = f"""
-        Evaluate this financial professional profile for a loan company recruiter.
-        Score from 0.0 to 1.0 for:
-        1. stability_score (length of tenure, lack of job hopping)
-        2. relevance_score (experience in loans, banking, financial tech)
-        3. overall_score
-        
-        Provide a short 'ai_summary' and identify 'risk_indicators' (e.g., job gaps).
-        
-        Profile:
-        {json.dumps(profile)}
-        """
-        
-        response = await self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are a senior financial talent analyst. Return only valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"}
-        )
-        
-        return json.loads(response.choices[0].message.content)
+        """Mock AI scoring for demo."""
+        return {
+            "overall_score": 0.95,
+            "stability_score": 0.92,
+            "relevance_score": 0.98,
+            "ai_summary": "Strong candidate with relevant fintech experience.",
+            "risk_indicators": []
+        }
 
 ai_service = AIService()
+
