@@ -30,7 +30,7 @@ export default function CandidatesPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/candidates" />
-      <main className="pl-64">
+      <main className="lg:pl-64">
         <Header />
         <div className="p-8">
           <div className="mb-8">
