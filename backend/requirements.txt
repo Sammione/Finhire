@@ -7,8 +7,6 @@ passlib[bcrypt]
 python-multipart
 openai
 langchain
-sentence-transformers
-elasticsearch
-redis
 python-dotenv
 httpx
+
