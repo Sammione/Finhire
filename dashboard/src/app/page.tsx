@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import MobileNav from '@/components/MobileNav';
 import Link from 'next/link';
 import { fetchWithAuth } from '@/lib/api';
 
@@ -33,7 +34,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/" />
-      <main className="lg:pl-64">
+      <MobileNav activePath="/" />
+      <main className="lg:pl-64 pb-20 lg:pb-0">
         <Header />
         <div className="p-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">

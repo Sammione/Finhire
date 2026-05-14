@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import MobileNav from '@/components/MobileNav';
 import { fetchWithAuth } from '@/lib/api';
 
 export default function CandidatesPage() {
@@ -30,7 +31,8 @@ export default function CandidatesPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/candidates" />
-      <main className="lg:pl-64">
+      <MobileNav activePath="/candidates" />
+      <main className="lg:pl-64 pb-20 lg:pb-0">
         <Header />
         <div className="p-8">
           <div className="mb-8">
