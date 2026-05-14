@@ -33,18 +33,19 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/" />
-      <main className="pl-64">
+      <main className="lg:pl-64">
         <Header />
         <div className="p-8">
-          <div className="flex justify-between items-end mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">Recruitment Overview</h1>
-              <p className="text-slate-500 mt-1">Intelligence-driven insights for your loan officer search.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Recruitment Overview</h1>
+              <p className="text-slate-500 mt-1 text-sm sm:text-base">Intelligence-driven insights for your loan officer search.</p>
             </div>
-            <Link href="/candidates" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+            <Link href="/candidates" className="w-full sm:w-auto text-center bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
               + New Search
             </Link>
           </div>
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             <StatCard 
@@ -79,33 +80,36 @@ export default function Dashboard() {
                 <h2 className="font-bold text-lg text-slate-800">Recent Discoveries</h2>
                 <Link href="/candidates" className="text-blue-600 text-sm font-semibold">View All</Link>
               </div>
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                  <tr>
-                    <th className="px-6 py-4 font-semibold">Candidate</th>
-                    <th className="px-6 py-4 font-semibold">Role</th>
-                    <th className="px-6 py-4 font-semibold">Match Score</th>
-                    <th className="px-6 py-4 font-semibold">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {loading ? (
-                    <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400">Loading recent candidates...</td></tr>
-                  ) : candidates.length > 0 ? (
-                    candidates.map((c: any) => (
-                      <CandidateRow 
-                        key={c.id}
-                        name={c.full_name} 
-                        role={c.headline} 
-                        score={c.match_score || "0%"} 
-                        status="Processed" 
-                      />
-                    ))
-                  ) : (
-                    <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400">No candidates found yet. Start a search to see them here!</td></tr>
-                  )}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[600px]">
+                  <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                    <tr>
+                      <th className="px-6 py-4 font-semibold">Candidate</th>
+                      <th className="px-6 py-4 font-semibold">Role</th>
+                      <th className="px-6 py-4 font-semibold">Match Score</th>
+                      <th className="px-6 py-4 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {loading ? (
+                      <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400">Loading recent candidates...</td></tr>
+                    ) : candidates.length > 0 ? (
+                      candidates.map((c: any) => (
+                        <CandidateRow 
+                          key={c.id}
+                          name={c.full_name} 
+                          role={c.headline} 
+                          score={c.match_score || "0%"} 
+                          status="Processed" 
+                        />
+                      ))
+                    ) : (
+                      <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400">No candidates found yet. Start a search to see them here!</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
             </div>
 
             <div className="space-y-6">

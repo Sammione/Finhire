@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export default function Sidebar({ activePath }: { activePath: string }) {
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 p-6 z-50">
+    <aside className="hidden lg:block lg:fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 p-6 z-50">
       <div className="flex items-center gap-3 mb-10">
         <Link href="/" className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">F</div>
