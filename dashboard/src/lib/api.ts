@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://finhire-1.onrender.com/api/v1';
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
