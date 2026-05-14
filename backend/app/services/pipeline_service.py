@@ -1,7 +1,5 @@
 from app.services.ai_service import ai_service
 from app.services.search_service import search_service
-from app.models.domain import Candidate, Intelligence, Experience
-from sqlalchemy.orm import Session
 from typing import Dict, Any
 import uuid
 
