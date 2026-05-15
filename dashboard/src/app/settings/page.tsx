@@ -1,21 +1,24 @@
 import React from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import MobileNav from '@/components/MobileNav';
 
 export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/settings" />
-      <main className="pl-64">
+      <MobileNav activePath="/settings" />
+      <main className="lg:pl-64 pb-20 lg:pb-0">
         <Header />
         <div className="p-8 max-w-4xl">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-800">Platform Settings</h1>
-            <p className="text-slate-500 mt-1">Configure your recruitment intelligence parameters and organization profile.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Platform Settings</h1>
+            <p className="text-slate-500 mt-1 text-sm sm:text-base">Configure your recruitment intelligence parameters and organization profile.</p>
           </div>
 
+
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="flex border-b border-slate-100 px-6">
+            <div className="flex border-b border-slate-100 px-6 overflow-x-auto whitespace-nowrap">
               <TabItem label="General" active />
               <TabItem label="AI & Search" />
               <TabItem label="Integrations" />
@@ -23,11 +26,12 @@ export default function SettingsPage() {
               <TabItem label="Billing" />
             </div>
 
+
             <div className="p-8 space-y-10">
               {/* Profile Section */}
               <section>
                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Organization Profile</h3>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-700">Company Name</label>
                     <input type="text" defaultValue="FinHire IQ Global" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none transition-all" />
@@ -42,6 +46,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </section>
+
 
               {/* AI Parameters */}
               <section className="pt-10 border-t border-slate-100">

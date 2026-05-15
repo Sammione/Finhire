@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import MobileNav from '@/components/MobileNav';
 import { fetchWithAuth } from '@/lib/api';
 
 export default function AnalyticsPage() {
@@ -31,13 +32,15 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/analytics" />
-      <main className="pl-64">
+      <MobileNav activePath="/analytics" />
+      <main className="lg:pl-64 pb-20 lg:pb-0">
         <Header />
         <div className="p-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-800">Recruitment Analytics</h1>
-            <p className="text-slate-500 mt-1">Deep insights into your hiring funnel and source effectiveness.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Recruitment Analytics</h1>
+            <p className="text-slate-500 mt-1 text-sm sm:text-base">Deep insights into your hiring funnel and source effectiveness.</p>
           </div>
+
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
             <MetricCard title="Time to Hire" value="18 Days" change="-4 days" positive />

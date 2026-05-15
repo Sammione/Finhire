@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import MobileNav from '@/components/MobileNav';
 import { fetchWithAuth } from '@/lib/api';
 
 export default function PipelinesPage() {
@@ -26,18 +27,20 @@ export default function PipelinesPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/pipelines" />
-      <main className="pl-64">
+      <MobileNav activePath="/pipelines" />
+      <main className="lg:pl-64 pb-20 lg:pb-0">
         <Header />
         <div className="p-8">
-          <div className="flex justify-between items-end mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">Recruitment Pipelines</h1>
-              <p className="text-slate-500 mt-1">Manage your active candidate hiring stages.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Recruitment Pipelines</h1>
+              <p className="text-slate-500 mt-1 text-sm sm:text-base">Manage your active candidate hiring stages.</p>
             </div>
-            <a href="/pipelines/create" className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+            <a href="/pipelines/create" className="w-full sm:w-auto text-center bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
               + Create Pipeline
             </a>
           </div>
+
 
           <div className="flex gap-6 overflow-x-auto pb-4">
             <PipelineColumn title="Sourced" count={candidates.length}>
