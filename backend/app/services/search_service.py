@@ -14,9 +14,10 @@ class SearchService:
         """Perform real-time search without database storage."""
         results = []
         
-        # Pull real records from the net (GitHub)
+        # Pull real records from the net (Multi-source: LinkedIn, Indeed, GitHub)
         if query and query.strip() != "":
-            external_results = await external_search_service.search_github_candidates(query)
+            external_results = await external_search_service.search_candidates(query)
+
             
             for er in external_results:
                 # Use AI to score external results in real-time

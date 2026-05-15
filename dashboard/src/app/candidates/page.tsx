@@ -147,8 +147,20 @@ function CandidateCard({ name, role, location, score, summary, skills }: { name:
             </span>
           ))}
         </div>
-        <button className="text-blue-600 text-xs font-bold hover:underline">View Intelligence Report →</button>
+        <div className="flex gap-4 items-center">
+          <button className="text-blue-600 text-xs font-bold hover:underline">View Intelligence Report →</button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              alert(`Added ${name} to Shortlist!`);
+            }}
+            className="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition-colors"
+          >
+            + Shortlist
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+

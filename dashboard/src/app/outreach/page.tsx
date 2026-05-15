@@ -11,10 +11,16 @@ export default function OutreachPage() {
       <main className="lg:pl-64 pb-20 lg:pb-0">
         <Header />
         <div className="p-8">
-          <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Automated Outreach</h1>
-            <p className="text-slate-500 mt-1 text-sm sm:text-base">AI-generated personalized sequences for candidates.</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Automated Outreach</h1>
+              <p className="text-slate-500 mt-1 text-sm sm:text-base">AI-generated personalized sequences for candidates.</p>
+            </div>
+            <button onClick={() => alert('Launching Campaign Builder...')} className="w-full sm:w-auto text-center bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+              + New Campaign
+            </button>
           </div>
+
 
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

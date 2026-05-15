@@ -42,9 +42,10 @@ export default function AnalyticsPage() {
           </div>
 
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <MetricCard title="Time to Hire" value="18 Days" change="-4 days" positive />
             <MetricCard title="Interview to Offer" value="24%" change="+2%" positive />
+            <MetricCard title="Acceptance Rate" value="92%" change="+5%" positive />
             <MetricCard title="Candidate Quality Index" value="8.2/10" change="+0.5" positive />
           </div>
 
@@ -58,6 +59,7 @@ export default function AnalyticsPage() {
                 <FunnelStep label="Offered" value={Math.round((funnel?.total_candidates || 0) * 0.01)} percentage={1} color="bg-blue-300" />
               </div>
             </div>
+
 
             <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 mb-6">Source Effectiveness</h3>

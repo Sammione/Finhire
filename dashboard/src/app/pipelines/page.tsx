@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
+import Link from 'next/link';
 import { fetchWithAuth } from '@/lib/api';
 
 export default function PipelinesPage() {
@@ -36,10 +37,11 @@ export default function PipelinesPage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Recruitment Pipelines</h1>
               <p className="text-slate-500 mt-1 text-sm sm:text-base">Manage your active candidate hiring stages.</p>
             </div>
-            <a href="/pipelines/create" className="w-full sm:w-auto text-center bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+            <button onClick={() => alert('Feature coming soon: Custom Pipeline Creation')} className="w-full sm:w-auto text-center bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
               + Create Pipeline
-            </a>
+            </button>
           </div>
+
 
 
           <div className="flex gap-6 overflow-x-auto pb-4">
