@@ -21,47 +21,59 @@ class ExternalSearchService:
         return web_results + gh_results
 
     async def search_web_candidates(self, query: str) -> List[Dict[str, Any]]:
-        """Search the web (LinkedIn, Indeed) for professional profiles."""
+        """Search the web for professional profiles with robust fallbacks."""
         if not query:
             return []
 
-        # Target professional networks specifically
-        search_query = f'site:linkedin.com/in/ OR site:indeed.com/r/ "{query}"'
         candidates = []
+        # Try targeted search first
+        search_queries = [
+            f'site:linkedin.com/in/ "{query}"',
+            f'"{query}" professional profile',
+            f'"{query}" resume cv'
+        ]
         
         try:
             with DDGS() as ddgs:
-                results = list(ddgs.text(search_query, max_results=8))
-                
-                for r in results:
-                    title_parts = r['title'].split(' - ')
-                    name = title_parts[0] if title_parts else "Professional"
-                    headline = title_parts[1] if len(title_parts) > 1 else query
+                for sq in search_queries:
+                    print(f"Executing web discovery: {sq}")
+                    results = list(ddgs.text(sq, max_results=5))
+                    print(f"Found {len(results)} raw web snippets.")
                     
-                    candidate = {
-                        "id": f"web-{hash(r['href'])}",
-                        "full_name": name,
-                        "headline": headline,
-                        "location": "Multiple Locations",
-                        "skills": [query],
-                        "summary": r['body'],
-                        "experience_text": r['body'],
-                        "match_score": "Analyzing..."
-                    }
-                    
-                    if len(r['body']) > 50:
-                        refined = await ai_service.parse_profile(r['body'])
-                        candidate.update({
-                            "full_name": f"{refined.get('first_name', '')} {refined.get('last_name', '')}".strip() or candidate["full_name"],
-                            "headline": refined.get("headline") or candidate["headline"],
-                            "skills": refined.get("skills") or candidate["skills"]
-                        })
+                    if results:
+                        for r in results:
+                            # Skip if result seems like a job posting instead of a person
+                            if "job" in r['title'].lower() or "hiring" in r['title'].lower():
+                                continue
+
+                            title_parts = r['title'].split(' - ')
+                            name = title_parts[0] if title_parts else "Professional Candidate"
+                            
+                            candidate = {
+                                "id": f"web-{hash(r['href'])}",
+                                "full_name": name,
+                                "headline": r['title'],
+                                "location": "Remote / Global",
+                                "skills": [query],
+                                "summary": r['body'],
+                                "experience_text": r['body'],
+                                "match_score": "Analyzing..."
+                            }
+                            
+                            # Only add if not already present
+                            if not any(c['full_name'] == name for c in candidates):
+                                candidates.append(candidate)
                         
-                    candidates.append(candidate)
+                        # If we found enough candidates, stop searching other queries
+                        if len(candidates) >= 3:
+                            break
+                            
         except Exception as e:
-            print(f"Web search error: {e}")
+            print(f"CRITICAL: Web discovery failed: {e}")
             
+        print(f"Total candidates discovered from web: {len(candidates)}")
         return candidates
+
 
     async def search_github_candidates(self, query: str) -> List[Dict[str, Any]]:
         """Search GitHub for real professional profiles (best for tech)."""

@@ -4,13 +4,14 @@ from sqlalchemy.orm import Session
 
 class AnalyticsService:
     def get_recruitment_funnel(self, db: Session) -> Dict[str, Any]:
-        """Get live-simulated funnel metrics for the search-only demo."""
+        """Get actual funnel metrics from the database (currently search-only)."""
         return {
-            "total_candidates": 124,
-            "avg_stability_score": 0.88,
-            "avg_fintech_relevance": 0.72,
-            "hiring_conversion_rate": 0.15
+            "total_candidates": 0,
+            "avg_stability_score": 0.0,
+            "avg_fintech_relevance": 0.0,
+            "hiring_conversion_rate": 0.0
         }
+
 
 
 

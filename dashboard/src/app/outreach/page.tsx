@@ -28,10 +28,11 @@ export default function OutreachPage() {
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                 <h3 className="font-bold text-slate-800 mb-4">Active Campaigns</h3>
                 <div className="space-y-4">
-                  <CampaignRow name="Loan Officer Q4 Hunt" candidates={45} responseRate="24%" status="Active" />
-                  <CampaignRow name="Underwriting Experts" candidates={12} responseRate="18%" status="Paused" />
-                  <CampaignRow name="Fintech Devs" candidates={8} responseRate="32%" status="Completed" />
+                  <div className="py-10 text-center text-slate-400 border border-dashed border-slate-100 rounded-xl">
+                    No active campaigns. Start a new one to begin outreach.
+                  </div>
                 </div>
+
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">

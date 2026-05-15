@@ -49,29 +49,28 @@ export default function Dashboard() {
           </div>
 
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             <StatCard 
               label="Total Candidates" 
               value={loading ? "..." : stats?.total_candidates || "0"} 
-              change="+12%" 
+              change="0%" 
               icon="👥" 
             />
             <StatCard 
               label="Avg. Stability Score" 
               value={loading ? "..." : stats?.avg_stability_score?.toFixed(2) || "0.00"} 
-              change="+5%" 
+              change="0%" 
               icon="🛡️" 
             />
             <StatCard 
               label="Fintech Relevance" 
               value={loading ? "..." : `${Math.round((stats?.avg_fintech_relevance || 0) * 100)}%`} 
-              change="+3%" 
+              change="0%" 
               icon="⚡" 
             />
             <StatCard 
               label="Active Interviews" 
-              value="18" 
-              change="-2" 
+              value="0" 
+              change="0" 
               icon="📅" 
             />
           </div>
@@ -120,15 +119,15 @@ export default function Dashboard() {
                   <span>🤖</span> AI Recruiter Insight
                 </h3>
                 <p className="text-blue-100 text-sm leading-relaxed mb-6">
-                  "Market analysis shows a 15% increase in high-stability loan professionals in the Seattle area. Sarah Jenkins represents a top 1% match for your 'Mortgage Lead' opening."
+                  {candidates.length > 0 ? `Detected ${candidates.length} new potential matches in your latest search. Evaluate them to begin outreach.` : "Start a search to generate AI-driven recruitment insights."}
                 </p>
                 <div className="space-y-3">
                   <div className="flex justify-between text-xs font-semibold uppercase tracking-widest text-blue-300">
                     <span>Talent Density Index</span>
-                    <span>8.4/10</span>
+                    <span>{candidates.length > 0 ? "Analyzing..." : "0/10"}</span>
                   </div>
                   <div className="w-full h-2 bg-blue-900/30 rounded-full overflow-hidden">
-                    <div className="w-[84%] h-full bg-white rounded-full"></div>
+                    <div className="h-full bg-white rounded-full" style={{ width: candidates.length > 0 ? "50%" : "0%" }}></div>
                   </div>
                 </div>
               </div>
@@ -136,13 +135,14 @@ export default function Dashboard() {
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                 <h3 className="font-bold text-slate-800 mb-4">Integrity Indicators</h3>
                 <div className="space-y-4">
-                  <Indicator label="Employment Consistency" value="High" color="bg-emerald-500" />
-                  <Indicator label="Certification Validated" value="Yes" color="bg-emerald-500" />
-                  <Indicator label="Identity Verified" value="Yes" color="bg-emerald-500" />
-                  <Indicator label="Job Hopping Risk" value="Low" color="bg-emerald-500" />
+                  <Indicator label="Employment Consistency" value="N/A" color="bg-slate-300" />
+                  <Indicator label="Certification Validated" value="N/A" color="bg-slate-300" />
+                  <Indicator label="Identity Verified" value="N/A" color="bg-slate-300" />
+                  <Indicator label="Job Hopping Risk" value="N/A" color="bg-slate-300" />
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </main>

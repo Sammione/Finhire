@@ -53,19 +53,16 @@ export default function PipelinesPage() {
               ))}
             </PipelineColumn>
 
-            <PipelineColumn title="Screening" count={5}>
-              <PipelineCard name="John Doe" score="94%" time="1d ago" />
-              <PipelineCard name="Jane Roe" score="89%" time="2d ago" />
+            <PipelineColumn title="Screening" count={0}>
+              {/* No mock data */}
+            </PipelineColumn>
+            <PipelineColumn title="Interview" count={0}>
+              {/* No mock data */}
+            </PipelineColumn>
+            <PipelineColumn title="Offer" count={0}>
+              {/* No mock data */}
             </PipelineColumn>
 
-            <PipelineColumn title="Interview" count={3} active>
-              <PipelineCard name="Sarah Jenkins" score="98%" time="3h ago" active />
-              <PipelineCard name="Michael Chen" score="96%" time="1d ago" />
-            </PipelineColumn>
-
-            <PipelineColumn title="Offer" count={1}>
-              <PipelineCard name="David Park" score="97%" time="4d ago" />
-            </PipelineColumn>
           </div>
         </div>
       </main>
