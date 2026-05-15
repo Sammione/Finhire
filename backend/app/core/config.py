@@ -22,8 +22,13 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_URL: Optional[str] = None
 
+    # Supabase
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
+
     # Elasticsearch
     ELASTICSEARCH_URL: str = "http://localhost:9200"
+
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 

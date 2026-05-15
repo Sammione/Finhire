@@ -21,8 +21,14 @@ FinHireIQ is an enterprise-grade recruitment platform designed for financial loa
 ### Prerequisites
 - Docker & Docker Compose
 - OpenAI API Key
+- Supabase Account (for cloud hosting)
 
-### Running the Backend
+### Supabase Setup
+1. Create a project at [supabase.com](https://supabase.com).
+2. Go to **Settings -> Database** and copy the **Connection String** (URI).
+3. Paste this into `backend/.env` as `DATABASE_URL`.
+4. Run the backend; it will automatically create the required tables on Supabase.
+
 ```bash
 docker-compose up --build
 ```

@@ -1,8 +1,10 @@
 from typing import Generator
-from app.core.mock_db import mock_db
+from app.db.session import SessionLocal
 
 def get_db() -> Generator:
+    db = SessionLocal()
     try:
-        yield mock_db
+        yield db
     finally:
-        pass
+        db.close()
+

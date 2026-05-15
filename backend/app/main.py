@@ -7,8 +7,14 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# Removed DB table creation for Mock MVP
-# domain.Base.metadata.create_all(bind=engine)
+from app.models import domain
+from app.models.base import Base
+from app.db.session import engine
+
+# Create DB tables
+Base.metadata.create_all(bind=engine)
+
+
 
 # Set all CORS enabled origins
 app.add_middleware(

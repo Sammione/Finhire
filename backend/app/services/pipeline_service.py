@@ -6,48 +6,59 @@ import uuid
 class CandidateIntelligencePipeline:
     async def process_raw_profile(self, db: Any, raw_text: str) -> Dict:
         """
-        Complete pipeline: Parse -> Score -> Index
+        Complete pipeline: Parse -> Score -> Persist
         """
+        from app.models.domain import Candidate, Intelligence, Experience
+        import uuid
+
         # 1. Parse raw text into structured data
         profile_data = await ai_service.parse_profile(raw_text)
         
         # 2. Create Candidate record
-        candidate_id = str(uuid.uuid4())
-        candidate = {
-            "id": candidate_id,
-            "first_name": profile_data.get("first_name"),
-            "last_name": profile_data.get("last_name"),
-            "headline": profile_data.get("headline"),
-            "location": profile_data.get("location"),
-            "summary": profile_data.get("summary"),
-            "raw_data": {"original_text": raw_text},
-            "experience": profile_data.get("experience", [])
-        }
+        candidate = Candidate(
+            id=uuid.uuid4(),
+            first_name=profile_data.get("first_name"),
+            last_name=profile_data.get("last_name"),
+            headline=profile_data.get("headline"),
+            location=profile_data.get("location"),
+            summary=profile_data.get("summary"),
+            raw_data={"original_text": raw_text}
+        )
+        db.add(candidate)
+        db.flush() # Get ID if needed
+        
+        # 3. Add Experience
+        for exp in profile_data.get("experience", []):
+            db.add(Experience(
+                candidate_id=candidate.id,
+                title=exp.get("title"),
+                company=exp.get("company"),
+                description=exp.get("description")
+            ))
         
         # 4. Calculate Scores
         intelligence_data = await ai_service.calculate_candidate_score(profile_data)
         
-        # 5. Save Intelligence (Combined in mock)
-        intelligence = {
-            "candidate_id": candidate_id,
-            "overall_score": intelligence_data.get("overall_score"),
-            "stability_score": intelligence_data.get("stability_score"),
-            "relevance_score": intelligence_data.get("relevance_score"),
-            "ai_summary": intelligence_data.get("ai_summary"),
-            "skills": profile_data.get("skills", []),
-            "risk_indicators": intelligence_data.get("risk_indicators", [])
-        }
-        candidate["intelligence"] = intelligence
+        # 5. Save Intelligence
+        intelligence = Intelligence(
+            candidate_id=candidate.id,
+            overall_score=intelligence_data.get("overall_score"),
+            stability_score=intelligence_data.get("stability_score"),
+            relevance_score=intelligence_data.get("relevance_score"),
+            ai_summary=intelligence_data.get("ai_summary"),
+            skills=profile_data.get("skills", []),
+            risk_indicators=intelligence_data.get("risk_indicators", [])
+        )
+        db.add(intelligence)
         
-        # 7. Index in Search Engine (Mocked)
-        search_data = {
-            **candidate,
-            "full_name": f"{candidate['first_name']} {candidate['last_name']}",
-            "match_score": f"{int(intelligence['overall_score'] * 100)}%"
-        }
-        await search_service.index_candidate(candidate_id, search_data)
+        db.commit()
         
-        return search_data
+        return {
+            "id": str(candidate.id),
+            "full_name": f"{candidate.first_name} {candidate.last_name}",
+            "match_score": f"{int(intelligence.overall_score * 100)}%"
+        }
+
 
 
 intelligence_pipeline = CandidateIntelligencePipeline()
