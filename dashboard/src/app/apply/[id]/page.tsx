@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { fetchWithAuth } from '@/lib/api';
+import { fetchWithAuth, API_BASE_URL } from '@/lib/api';
 
 export default function PublicApplyPage() {
   const { id } = useParams();
@@ -20,7 +20,11 @@ export default function PublicApplyPage() {
     last_name: '',
     email: '',
     phone: '',
-    resume_text: '',
+    summary: '',
+    skills: '',
+    experience: '',
+    education: '',
+    raw_text: '',
     notes: ''
   });
 
@@ -41,10 +45,36 @@ export default function PublicApplyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    
+    // Combine fields into the resume_text required by the backend
+    const combinedResume = `
+SUMMARY:
+${formData.summary}
+
+SKILLS:
+${formData.skills}
+
+EXPERIENCE:
+${formData.experience}
+
+EDUCATION:
+${formData.education}
+
+RAW CONTENT:
+${formData.raw_text}
+    `;
+
     try {
       await fetchWithAuth(`/jobs/${id}/apply`, {
         method: 'POST',
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email,
+          phone: formData.phone,
+          resume_text: combinedResume,
+          notes: formData.notes
+        })
       });
       setSubmitted(true);
     } catch (error) {
@@ -54,25 +84,52 @@ export default function PublicApplyPage() {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setFileName(file.name);
     setIsScanning(true);
 
-    // Simulate AI parsing delay
-    setTimeout(() => {
-      setFormData({
-        first_name: 'Alex',
-        last_name: 'Carter',
-        email: 'alex.carter@example.com',
-        phone: '+1 (555) 019-2834',
-        resume_text: `Senior Financial Analyst with 7 years of experience in risk assessment and portfolio management.\n\nEXPERIENCE\nGoldman Sachs - Senior Analyst (2020-Present)\n- Managed $50M portfolio\n- Reduced risk exposure by 15%\n\nEDUCATION\nHarvard University - MS Finance`,
-        notes: ''
+    try {
+      const data = new FormData();
+      data.append('file', file);
+      
+      const response = await fetch(`${API_BASE_URL}/jobs/parse-resume`, {
+        method: 'POST',
+        body: data
       });
+      
+      if (!response.ok) throw new Error("Parsing failed");
+      
+      const result = await response.json();
+      const parsedData = result.data;
+      
+      let expText = '';
+      if (parsedData.experience && Array.isArray(parsedData.experience)) {
+        expText = parsedData.experience.map((ex: any) => 
+          `${ex.title} at ${ex.company}\n${ex.description}`
+        ).join('\n\n');
+      }
+
+      setFormData({
+        ...formData,
+        first_name: parsedData.first_name || '',
+        last_name: parsedData.last_name || '',
+        email: formData.email, // Assume email might not be parsed perfectly, keep existing if any
+        phone: formData.phone,
+        summary: parsedData.summary || '',
+        skills: Array.isArray(parsedData.skills) ? parsedData.skills.join(', ') : '',
+        experience: expText,
+        education: 'Please specify your education background here', // Our simple AI parse prompt might not grab education yet
+        raw_text: result.raw_text || ''
+      });
+      
+    } catch (error) {
+      alert("Failed to parse the CV automatically. Please fill the details manually.");
+    } finally {
       setIsScanning(false);
-    }, 2000);
+    }
   };
 
   if (loading) {
@@ -148,7 +205,7 @@ export default function PublicApplyPage() {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-12">
           
           {/* Left Column: Job Details */}
-          <div className="xl:col-span-5 space-y-8">
+          <div className="xl:col-span-4 space-y-8">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6">
                 <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
@@ -159,15 +216,15 @@ export default function PublicApplyPage() {
               </h1>
               <p className="text-xl text-slate-400 font-medium mb-8">at {job.company}</p>
               
-              <div className="flex flex-wrap gap-3 mb-10">
-                <div className="flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 backdrop-blur-sm">
-                  <span className="text-slate-500">📍</span> {job.location}
+              <div className="flex flex-col gap-3 mb-10">
+                <div className="flex items-center gap-3 bg-slate-800/50 border border-slate-700/50 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 backdrop-blur-sm">
+                  <span className="text-slate-500 text-lg">📍</span> {job.location}
                 </div>
-                <div className="flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 backdrop-blur-sm">
-                  <span className="text-slate-500">💼</span> {job.job_type}
+                <div className="flex items-center gap-3 bg-slate-800/50 border border-slate-700/50 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 backdrop-blur-sm">
+                  <span className="text-slate-500 text-lg">💼</span> {job.job_type}
                 </div>
-                <div className="flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 backdrop-blur-sm">
-                  <span className="text-slate-500">💰</span> {job.salary_range || 'Competitive'}
+                <div className="flex items-center gap-3 bg-slate-800/50 border border-slate-700/50 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 backdrop-blur-sm">
+                  <span className="text-slate-500 text-lg">💰</span> {job.salary_range || 'Competitive'}
                 </div>
               </div>
             </div>
@@ -178,28 +235,30 @@ export default function PublicApplyPage() {
                 <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 About the Role
               </h3>
-              <div className="text-sm text-slate-400 leading-relaxed whitespace-pre-line relative z-10">
+              <div className="text-sm text-slate-400 leading-relaxed whitespace-pre-line relative z-10 line-clamp-6">
                 {job.description}
               </div>
             </div>
           </div>
 
           {/* Right Column: Application Form */}
-          <div className="xl:col-span-7">
+          <div className="xl:col-span-8">
             <div className="bg-[#0f1524]/80 backdrop-blur-2xl p-8 md:p-10 rounded-[2.5rem] border border-slate-700/50 shadow-[0_0_50px_rgba(0,0,0,0.3)] relative overflow-hidden">
               {/* Subtle top highlight */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
 
-              <div className="mb-10">
-                <h2 className="text-2xl font-bold text-white mb-2">Submit Application</h2>
-                <p className="text-sm text-slate-400">Complete your profile below or let our AI extract your details.</p>
+              <div className="mb-10 flex justify-between items-end border-b border-slate-800 pb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Submit Profile</h2>
+                  <p className="text-sm text-slate-400">Complete your profile below or let our AI extract your details.</p>
+                </div>
               </div>
 
               {/* Smart Resume Upload Zone */}
               <div className="mb-10">
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className={`relative group cursor-pointer border-2 border-dashed rounded-3xl p-8 transition-all duration-500 overflow-hidden ${isScanning ? 'border-blue-500 bg-blue-500/5' : 'border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/30'}`}
+                  className={`relative group cursor-pointer border-2 border-dashed rounded-3xl p-10 transition-all duration-500 overflow-hidden ${isScanning ? 'border-blue-500 bg-blue-500/5' : 'border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/30'}`}
                 >
                   <input 
                     type="file" 
@@ -221,118 +280,149 @@ export default function PublicApplyPage() {
                       </div>
                     </div>
                   ) : fileName ? (
-                    <div className="flex items-center justify-between bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div className="flex items-center justify-between bg-slate-800/80 p-5 rounded-2xl border border-slate-700">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center">
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-bold text-white">{fileName}</p>
-                          <p className="text-xs text-emerald-400">Successfully extracted</p>
+                          <p className="text-base font-bold text-white">{fileName}</p>
+                          <p className="text-xs font-medium text-emerald-400">Content successfully extracted and parsed</p>
                         </div>
                       </div>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); setFileName(null); setFormData({...formData, resume_text: ''})}} 
-                        className="text-slate-500 hover:text-white text-sm px-3 py-1"
+                        onClick={(e) => { e.stopPropagation(); setFileName(null);}} 
+                        className="text-slate-400 hover:text-white text-sm font-medium bg-slate-700/50 hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors"
                       >
-                        Change
+                        Replace CV
                       </button>
                     </div>
                   ) : (
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-blue-600 transition-all duration-500 shadow-lg">
-                        <svg className="w-6 h-6 text-slate-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                      <div className="w-20 h-20 bg-slate-800 rounded-[1.5rem] flex items-center justify-center mx-auto mb-5 group-hover:scale-110 group-hover:bg-blue-600 transition-all duration-500 shadow-xl">
+                        <svg className="w-8 h-8 text-slate-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                       </div>
-                      <p className="text-white font-bold mb-1">Smart Upload CV</p>
-                      <p className="text-xs text-slate-400">Drag & drop or click to browse. PDF, DOCX, TXT</p>
+                      <p className="text-white font-bold text-lg mb-2">Upload Resume for AI Auto-Fill</p>
+                      <p className="text-sm text-slate-400">PDF, DOCX, or TXT. Our intelligence engine will extract your details.</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={handleSubmit} className="space-y-8">
+                <div className="space-y-6">
+                  <h3 className="text-blue-400 font-bold text-sm tracking-widest uppercase border-b border-slate-800 pb-2">Basic Info</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">First Name</label>
+                      <input 
+                        required
+                        className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                        value={formData.first_name}
+                        onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Last Name</label>
+                      <input 
+                        required
+                        className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                        value={formData.last_name}
+                        onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
+                      <input 
+                        type="email"
+                        required
+                        className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Phone Number</label>
+                      <input 
+                        className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h3 className="text-blue-400 font-bold text-sm tracking-widest uppercase border-b border-slate-800 pb-2">Professional Profile</h3>
+                  
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">First Name</label>
-                    <input 
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Professional Summary</label>
+                    <textarea 
                       required
-                      placeholder="e.g. Alex"
-                      className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
-                      value={formData.first_name}
-                      onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                      rows={3}
+                      className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none placeholder:text-slate-600"
+                      value={formData.summary}
+                      onChange={(e) => setFormData({...formData, summary: e.target.value})}
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Last Name</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Skills (Comma separated)</label>
                     <input 
                       required
-                      placeholder="e.g. Carter"
                       className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
-                      value={formData.last_name}
-                      onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                      value={formData.skills}
+                      onChange={(e) => setFormData({...formData, skills: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Working Experience</label>
+                    <textarea 
+                      required
+                      rows={5}
+                      className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none placeholder:text-slate-600"
+                      value={formData.experience}
+                      onChange={(e) => setFormData({...formData, experience: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Education Background</label>
+                    <textarea 
+                      required
+                      rows={3}
+                      className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none placeholder:text-slate-600"
+                      value={formData.education}
+                      onChange={(e) => setFormData({...formData, education: e.target.value})}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
-                    <input 
-                      type="email"
-                      required
-                      placeholder="alex@example.com"
-                      className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Phone Number</label>
-                    <input 
-                      placeholder="+1 (555) 000-0000"
-                      className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-end mb-2">
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Professional Bio / Raw Text</label>
-                    {fileName && <span className="text-[10px] text-blue-400 font-bold bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20">Auto-filled</span>}
-                  </div>
-                  <textarea 
-                    required
-                    rows={6}
-                    placeholder="Paste your experience, skills, and education here if not uploading a file..."
-                    className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-800/50 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none placeholder:text-slate-600"
-                    value={formData.resume_text}
-                    onChange={(e) => setFormData({...formData, resume_text: e.target.value})}
-                  />
-                </div>
-
-                <div className="pt-4">
+                <div className="pt-8">
                   <button 
                     type="submit"
                     disabled={submitting || isScanning}
-                    className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4.5 rounded-2xl font-bold text-lg shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_40px_rgba(37,99,235,0.6)] hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 ${submitting || isScanning ? 'opacity-70 cursor-not-allowed scale-100' : ''}`}
+                    className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-5 rounded-2xl font-bold text-xl shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_40px_rgba(37,99,235,0.6)] hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 ${submitting || isScanning ? 'opacity-70 cursor-not-allowed scale-100' : ''}`}
                   >
                     {submitting ? (
                       <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         Encrypting & Submitting...
                       </>
                     ) : (
                       <>
-                        Submit Profile
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        Submit Complete Profile
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                       </>
                     )}
                   </button>
                 </div>
                 
-                <p className="text-center text-[11px] text-slate-500 font-medium">
+                <p className="text-center text-xs text-slate-500 font-medium tracking-wide">
                   Secured by FinHireIQ • ISO 27001 Certified • End-to-End Encrypted
                 </p>
               </form>

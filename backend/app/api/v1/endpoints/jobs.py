@@ -116,3 +116,36 @@ async def apply_for_job(
     db.commit()
     
     return {"status": "success", "message": "Application submitted successfully", "application_id": str(application.id)}
+
+from fastapi import UploadFile, File
+from app.services.ai_service import ai_service
+import io
+
+@router.post("/parse-resume")
+async def parse_resume(file: UploadFile = File(...)):
+    """
+    Extracts text from an uploaded CV (PDF or TXT) and uses the AI service to parse it into structured JSON.
+    """
+    try:
+        content = await file.read()
+        text = ""
+        if file.filename.lower().endswith(".pdf"):
+            import PyPDF2
+            pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+            for page in pdf_reader.pages:
+                extracted = page.extract_text()
+                if extracted:
+                    text += extracted + "\n"
+        else:
+            # Assume plain text
+            text = content.decode("utf-8", errors="ignore")
+            
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="Could not extract text from the provided file.")
+            
+        # Parse text into structured data
+        parsed_data = await ai_service.parse_profile(text)
+        return {"status": "success", "data": parsed_data, "raw_text": text}
+    except Exception as e:
+        print(f"Error parsing resume: {e}")
+        raise HTTPException(status_code=500, detail="Failed to parse the resume file.")
