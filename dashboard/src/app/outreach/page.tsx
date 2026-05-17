@@ -1,11 +1,52 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function OutreachPage() {
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const loadCampaigns = async () => {
+    try {
+      const data = await fetchWithAuth('/outreach');
+      setCampaigns(data);
+    } catch (error) {
+      console.error("Failed to load campaigns", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCampaigns();
+  }, []);
+
+  const handleNewCampaign = async () => {
+    const name = prompt("Enter new campaign name:");
+    if (!name) return;
+    
+    setIsCreating(true);
+    try {
+      await fetchWithAuth('/outreach', {
+        method: 'POST',
+        body: JSON.stringify({ name })
+      });
+      loadCampaigns();
+    } catch (error) {
+      console.error("Failed to create campaign", error);
+      alert("Error creating campaign");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const totalEmails = campaigns.reduce((sum, c) => sum + c.emails_sent, 0);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/outreach" />
@@ -18,23 +59,38 @@ export default function OutreachPage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Automated Outreach</h1>
               <p className="text-slate-500 mt-1 text-sm sm:text-base">AI-generated personalized sequences for candidates.</p>
             </div>
-            <button onClick={() => alert('Launching Campaign Builder...')} className="w-full sm:w-auto text-center bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
-              + New Campaign
+            <button 
+              onClick={handleNewCampaign} 
+              disabled={isCreating}
+              className="w-full sm:w-auto text-center bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+            >
+              {isCreating ? 'Creating...' : '+ New Campaign'}
             </button>
           </div>
-
-
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                 <h3 className="font-bold text-slate-800 mb-4">Active Campaigns</h3>
                 <div className="space-y-4">
-                  <div className="py-10 text-center text-slate-400 border border-dashed border-slate-100 rounded-xl">
-                    No active campaigns. Start a new one to begin outreach.
-                  </div>
+                  {loading ? (
+                    <div className="py-10 text-center text-slate-400">Loading campaigns...</div>
+                  ) : campaigns.length === 0 ? (
+                    <div className="py-10 text-center text-slate-400 border border-dashed border-slate-100 rounded-xl">
+                      No active campaigns. Start a new one to begin outreach.
+                    </div>
+                  ) : (
+                    campaigns.map(c => (
+                      <CampaignRow 
+                        key={c.id} 
+                        name={c.name} 
+                        candidates={c.emails_sent} 
+                        responseRate={`${(c.reply_rate * 100).toFixed(1)}%`} 
+                        status={c.status} 
+                      />
+                    ))
+                  )}
                 </div>
-
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
@@ -49,7 +105,7 @@ export default function OutreachPage() {
               <h3 className="font-bold text-slate-800 mb-4">Outreach Metrics</h3>
               <div className="space-y-6">
                 <div className="text-center p-4 bg-blue-50 rounded-2xl">
-                  <p className="text-3xl font-bold text-blue-600">842</p>
+                  <p className="text-3xl font-bold text-blue-600">{totalEmails}</p>
                   <p className="text-xs font-bold text-blue-400 uppercase mt-1">Emails Sent</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

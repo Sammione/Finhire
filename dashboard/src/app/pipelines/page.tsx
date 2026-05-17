@@ -4,26 +4,61 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
-import Link from 'next/link';
 import { fetchWithAuth } from '@/lib/api';
 
 export default function PipelinesPage() {
-  const [candidates, setCandidates] = useState<any[]>([]);
+  const [pipeline, setPipeline] = useState<any>({
+    Sourced: [],
+    Screening: [],
+    Interview: [],
+    Offer: []
+  });
   const [loading, setLoading] = useState(true);
 
+  const loadPipeline = async () => {
+    try {
+      const data = await fetchWithAuth('/pipelines');
+      setPipeline(data);
+    } catch (error) {
+      console.error("Failed to load pipeline candidates", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadCandidates = async () => {
-      try {
-        const data = await fetchWithAuth('/candidates/search?q=');
-        setCandidates(data);
-      } catch (error) {
-        console.error("Failed to load pipeline candidates", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadCandidates();
+    loadPipeline();
   }, []);
+
+  const moveCandidate = async (candidateId: string, newStage: string) => {
+    // Optimistic UI update
+    const newPipeline = { ...pipeline };
+    let movedCandidate = null;
+    
+    // Find and remove
+    for (const stage of Object.keys(newPipeline)) {
+      const index = newPipeline[stage].findIndex((c: any) => c.id === candidateId);
+      if (index !== -1) {
+        movedCandidate = newPipeline[stage].splice(index, 1)[0];
+        break;
+      }
+    }
+    
+    // Add to new
+    if (movedCandidate) {
+      movedCandidate.status = newStage;
+      newPipeline[newStage].push(movedCandidate);
+      setPipeline(newPipeline);
+      
+      // Update backend
+      try {
+        await fetchWithAuth(`/pipelines/${candidateId}/stage?stage=${newStage}`, { method: 'PUT' });
+      } catch (error) {
+        console.error("Failed to update stage", error);
+        loadPipeline(); // rollback
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -42,27 +77,23 @@ export default function PipelinesPage() {
             </button>
           </div>
 
-
-
           <div className="flex gap-6 overflow-x-auto pb-4">
-            <PipelineColumn title="Sourced" count={candidates.length}>
-              {loading ? (
-                <div className="p-4 text-center text-xs text-slate-400">Loading...</div>
-              ) : candidates.map((c: any) => (
-                <PipelineCard key={c.id} name={c.full_name} score={c.match_score} time="Just now" />
-              ))}
-            </PipelineColumn>
-
-            <PipelineColumn title="Screening" count={0}>
-              {/* No mock data */}
-            </PipelineColumn>
-            <PipelineColumn title="Interview" count={0}>
-              {/* No mock data */}
-            </PipelineColumn>
-            <PipelineColumn title="Offer" count={0}>
-              {/* No mock data */}
-            </PipelineColumn>
-
+            {Object.keys(pipeline).map((stage) => (
+              <PipelineColumn 
+                key={stage} 
+                title={stage} 
+                count={pipeline[stage].length}
+                onDropCandidate={(id) => moveCandidate(id, stage)}
+              >
+                {loading ? (
+                  <div className="p-4 text-center text-xs text-slate-400">Loading...</div>
+                ) : (
+                  pipeline[stage].map((c: any) => (
+                    <PipelineCard key={c.id} id={c.id} name={c.full_name} score={c.match_score} time={c.time} />
+                  ))
+                )}
+              </PipelineColumn>
+            ))}
           </div>
         </div>
       </main>
@@ -70,9 +101,21 @@ export default function PipelinesPage() {
   );
 }
 
-function PipelineColumn({ title, count, children, active = false }: { title: string, count: number, children?: React.ReactNode, active?: boolean }) {
+function PipelineColumn({ title, count, children, onDropCandidate }: { title: string, count: number, children?: React.ReactNode, onDropCandidate: (id: string) => void }) {
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    const candidateId = e.dataTransfer.getData("candidateId");
+    if (candidateId) {
+      onDropCandidate(candidateId);
+    }
+  };
+
   return (
-    <div className="flex-shrink-0 w-80">
+    <div className="flex-shrink-0 w-80" onDragOver={handleDragOver} onDrop={handleDrop}>
       <div className="flex justify-between items-center mb-4 px-2">
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-slate-800 uppercase tracking-wider text-xs">{title}</h3>
@@ -80,19 +123,27 @@ function PipelineColumn({ title, count, children, active = false }: { title: str
         </div>
         <button className="text-slate-400 hover:text-slate-600 text-lg">•••</button>
       </div>
-      <div className={`space-y-4 min-h-[500px] p-2 rounded-2xl transition-colors ${active ? 'bg-blue-50/50 border-2 border-dashed border-blue-200' : 'bg-slate-100/50'}`}>
+      <div className="space-y-4 min-h-[500px] p-2 rounded-2xl bg-slate-100/50 transition-colors">
         {children}
         <button className="w-full py-3 text-slate-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed border-slate-200 rounded-xl hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-all">
-          + Drop Candidate
+          Drop Candidate Here
         </button>
       </div>
     </div>
   );
 }
 
-function PipelineCard({ name, score, time, active = false }: { name: string, score: string, time: string, active?: boolean }) {
+function PipelineCard({ id, name, score, time }: { id: string, name: string, score: string, time: string }) {
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("candidateId", id);
+  };
+
   return (
-    <div className={`bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-grab active:grabbing hover:shadow-md transition-all ${active ? 'ring-2 ring-blue-500 border-transparent' : ''}`}>
+    <div 
+      draggable
+      onDragStart={handleDragStart}
+      className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-grab active:grabbing hover:shadow-md transition-all"
+    >
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">{name.split(' ').map(n => n[0]).join('')}</div>

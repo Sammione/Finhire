@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, ForeignKey, Enum, JSON, Float, DateTime, Text
+from sqlalchemy import Column, String, Boolean, ForeignKey, Enum, JSON, Float, DateTime, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -99,3 +99,25 @@ class Application(Base):
     
     job = relationship("Job", back_populates="applications")
     candidate = relationship("Candidate", back_populates="applications")
+
+class Settings(Base):
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # Using String for simplicity in MVP instead of enforcing foreign key if user not strictly managed
+    user_id = Column(String, unique=True, nullable=True) 
+    company_name = Column(String, default="FinHire IQ Global")
+    industry = Column(String, default="Financial Services")
+    stability_weight = Column(Float, default=80)
+    fintech_weight = Column(Float, default=95)
+    skill_match_weight = Column(Float, default=60)
+    ethical_bias_mitigation = Column(Boolean, default=True)
+    auto_refresh = Column(Boolean, default=True)
+
+class Campaign(Base):
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String)
+    status = Column(String, default="Active")
+    emails_sent = Column(Integer, default=0)
+    open_rate = Column(Float, default=0.0)
+    reply_rate = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+

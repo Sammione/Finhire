@@ -112,6 +112,25 @@ export default function CandidatesPage() {
 }
 
 function CandidateCard({ name, role, location, score, summary, skills }: { name: string, role: string, location: string, score: string, summary: string, skills: string[] }) {
+  const [isShortlisting, setIsShortlisting] = useState(false);
+
+  const handleShortlist = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsShortlisting(true);
+    try {
+      const rawProfileText = `${name} - ${role}. Location: ${location}. Summary: ${summary}. Skills: ${skills?.join(', ')}`;
+      await fetchWithAuth(`/candidates/ingest?raw_text=${encodeURIComponent(rawProfileText)}`, {
+        method: 'POST'
+      });
+      alert(`Successfully added ${name} to your Talent Pool / Shortlist!`);
+    } catch (error) {
+      console.error('Failed to shortlist', error);
+      alert(`Failed to shortlist ${name}.`);
+    } finally {
+      setIsShortlisting(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:border-blue-300 transition-all cursor-pointer group">
       <div className="flex justify-between items-start mb-4">
@@ -150,13 +169,15 @@ function CandidateCard({ name, role, location, score, summary, skills }: { name:
         <div className="flex gap-4 items-center">
           <button className="text-blue-600 text-xs font-bold hover:underline">View Intelligence Report →</button>
           <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              alert(`Added ${name} to Shortlist!`);
-            }}
-            className="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition-colors"
+            onClick={handleShortlist}
+            disabled={isShortlisting}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+              isShortlisting 
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}
           >
-            + Shortlist
+            {isShortlisting ? 'Saving...' : '+ Shortlist'}
           </button>
         </div>
       </div>
