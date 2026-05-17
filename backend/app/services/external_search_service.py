@@ -1,4 +1,4 @@
-from duckduckgo_search import DDGS
+import os
 import httpx
 from typing import List, Dict, Any
 from app.services.ai_service import ai_service
@@ -8,6 +8,8 @@ class ExternalSearchService:
     def __init__(self):
         self.github_api_url = "https://api.github.com/search/users"
         self.github_user_url = "https://api.github.com/users"
+        self.serpapi_key = os.getenv("SERPAPI_API_KEY", "")
+        self.apify_token = os.getenv("APIFY_API_TOKEN", "")
 
     async def search_candidates(self, query: str) -> List[Dict[str, Any]]:
         """Main entry point to fetch real candidates from multiple net sources."""
@@ -21,58 +23,98 @@ class ExternalSearchService:
         return web_results + gh_results
 
     async def search_web_candidates(self, query: str) -> List[Dict[str, Any]]:
-        """Search the web for professional profiles with robust fallbacks."""
+        """Search the web for professional profiles using SerpApi (Instant Search)."""
         if not query:
             return []
 
         candidates = []
-        # Try targeted search first
-        search_queries = [
-            f'site:linkedin.com/in/ "{query}"',
-            f'"{query}" professional profile',
-            f'"{query}" resume cv'
-        ]
+        search_query = f'site:linkedin.com/in/ OR site:indeed.com/r/ "{query}"'
         
-        try:
-            with DDGS() as ddgs:
-                for sq in search_queries:
-                    print(f"Executing web discovery: {sq}")
-                    results = list(ddgs.text(sq, max_results=5))
-                    print(f"Found {len(results)} raw web snippets.")
-                    
-                    if results:
-                        for r in results:
-                            # Skip if result seems like a job posting instead of a person
-                            if "job" in r['title'].lower() or "hiring" in r['title'].lower():
-                                continue
+        if not self.serpapi_key:
+            print("WARNING: SERPAPI_API_KEY is not set. Falling back to empty web results.")
+            return candidates
 
-                            title_parts = r['title'].split(' - ')
-                            name = title_parts[0] if title_parts else "Professional Candidate"
-                            
-                            candidate = {
-                                "id": f"web-{hash(r['href'])}",
-                                "full_name": name,
-                                "headline": r['title'],
-                                "location": "Remote / Global",
-                                "skills": [query],
-                                "summary": r['body'],
-                                "experience_text": r['body'],
-                                "match_score": "Analyzing..."
-                            }
-                            
-                            # Only add if not already present
-                            if not any(c['full_name'] == name for c in candidates):
-                                candidates.append(candidate)
-                        
-                        # If we found enough candidates, stop searching other queries
-                        if len(candidates) >= 3:
-                            break
-                            
-        except Exception as e:
-            print(f"CRITICAL: Web discovery failed: {e}")
-            
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"Executing SerpApi web discovery: {search_query}")
+                response = await client.get(
+                    "https://serpapi.com/search.json",
+                    params={
+                        "engine": "google",
+                        "q": search_query,
+                        "api_key": self.serpapi_key,
+                        "num": 10  # Get top 10 instantly
+                    },
+                    timeout=10.0
+                )
+                response.raise_for_status()
+                data = response.json()
+                results = data.get("organic_results", [])
+                
+                print(f"Found {len(results)} raw web snippets from SerpApi.")
+                
+                for r in results:
+                    title = r.get("title", "")
+                    link = r.get("link", "")
+                    snippet = r.get("snippet", "")
+                    
+                    if "job" in title.lower() or "hiring" in title.lower() or "/jobs/" in link:
+                        continue
+
+                    title_parts = title.split(' - ')
+                    name = title_parts[0] if title_parts else "Professional Candidate"
+                    
+                    candidate = {
+                        "id": f"web-{hash(link)}",
+                        "full_name": name,
+                        "headline": title,
+                        "location": "Remote / Global",
+                        "skills": [query],
+                        "summary": snippet,
+                        "experience_text": snippet,
+                        "match_score": "Analyzing..."
+                    }
+                    
+                    if not any(c['full_name'] == name for c in candidates):
+                        candidates.append(candidate)
+
+            except Exception as e:
+                print(f"CRITICAL: SerpApi web discovery failed: {e}")
+                
         print(f"Total candidates discovered from web: {len(candidates)}")
         return candidates
+
+    async def deep_source_candidates(self, query: str) -> Dict[str, Any]:
+        """Trigger Apify Background Task for Deep Sourcing (Hundreds of resumes)."""
+        if not self.apify_token:
+            return {"status": "error", "message": "APIFY_API_TOKEN is not set."}
+        
+        # This calls a specific Apify actor (e.g., an Indeed Scraper) in the background
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"Triggering Apify Deep Source for: {query}")
+                # We use a placeholder Indeed scraper Actor ID here
+                actor_id = "hynek~indeed-scraper"
+                response = await client.post(
+                    f"https://api.apify.com/v2/acts/{actor_id}/runs?token={self.apify_token}",
+                    json={
+                        "searchTerms": [query],
+                        "maxItems": 500
+                    },
+                    timeout=10.0
+                )
+                response.raise_for_status()
+                data = response.json()
+                run_id = data.get("data", {}).get("id")
+                
+                return {
+                    "status": "success", 
+                    "message": "Deep sourcing started in the background.",
+                    "run_id": run_id
+                }
+            except Exception as e:
+                print(f"Apify Deep Source failed: {e}")
+                return {"status": "error", "message": str(e)}
 
 
     async def search_github_candidates(self, query: str) -> List[Dict[str, Any]]:

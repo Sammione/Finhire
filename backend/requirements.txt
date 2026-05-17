@@ -11,5 +11,6 @@ sqlalchemy
 python-dotenv
 httpx
 psycopg2-binary
-duckduckgo-search
+google-search-results
+apify-client
 PyPDF2
