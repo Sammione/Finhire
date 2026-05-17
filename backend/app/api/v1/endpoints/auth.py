@@ -27,3 +27,17 @@ async def login_access_token(
         ),
         "token_type": "bearer",
     }
+
+@router.get("/me")
+async def read_users_me(db: Any = Depends(deps.get_db)) -> Any:
+    """
+    Get current user.
+    """
+    # For MVP, returning a dynamic mock user. 
+    # Once full auth is wired up, this will decode the JWT and return the real DB user.
+    return {
+        "id": "1",
+        "full_name": "Sarah Jenkins",
+        "email": "admin@finhire.iq",
+        "role": "Recruitment Director"
+    }

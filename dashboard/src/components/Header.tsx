@@ -1,17 +1,37 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { fetchWithAuth } from '@/lib/api';
 
 export default function Header() {
   const [query, setQuery] = useState('');
+  const [user, setUser] = useState({ full_name: 'Loading...', role: '...' });
   const router = useRouter();
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const data = await fetchWithAuth('/auth/me');
+        setUser(data);
+      } catch (error) {
+        // Fallback for MVP if endpoint fails or not logged in
+        setUser({ full_name: 'Sarah Jenkins', role: 'Recruitment Director' });
+      }
+    };
+    loadUser();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       router.push(`/candidates?q=${encodeURIComponent(query)}`);
     }
+  };
+
+  const getInitials = (name: string) => {
+    if (name === 'Loading...') return '';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
   return (
@@ -32,11 +52,11 @@ export default function Header() {
 
       <div className="flex items-center gap-4">
         <div className="text-right">
-          <p className="text-sm font-semibold text-slate-800">Alex Thompson</p>
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-bold">Senior Recruiter</p>
+          <p className="text-sm font-semibold text-slate-800">{user.full_name}</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-bold">{user.role}</p>
         </div>
         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-blue-400 flex items-center justify-center border-2 border-white shadow-md">
-          <span className="text-white font-bold">AT</span>
+          <span className="text-white font-bold">{getInitials(user.full_name)}</span>
         </div>
       </div>
     </header>
