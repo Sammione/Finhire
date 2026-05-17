@@ -27,13 +27,19 @@ async def create_job(
     """
     Create a new job vacancy.
     """
-    # For MVP, we'll use a hardcoded recruiter_id if not authenticated
-    # In production, this would come from the current_user dependency
-    recruiter_id = uuid.uuid4() # Mock ID
+    from app.models.domain import User
     
+    # Get or create a default user for MVP
+    user = db.query(User).first()
+    if not user:
+        user = User(email="demo@finhireiq.com", hashed_password="fake", full_name="Demo Recruiter")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
     job = Job(
         **job_in.dict(),
-        recruiter_id=recruiter_id,
+        recruiter_id=user.id,
         status=JobStatus.ACTIVE
     )
     db.add(job)
