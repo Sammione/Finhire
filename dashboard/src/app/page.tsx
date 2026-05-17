@@ -48,7 +48,7 @@ export default function Dashboard() {
             </Link>
           </div>
 
-
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard 
               label="Total Candidates" 
               value={loading ? "..." : stats?.total_candidates || "0"} 

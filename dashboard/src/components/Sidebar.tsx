@@ -14,6 +14,7 @@ export default function Sidebar({ activePath }: { activePath: string }) {
       <nav className="space-y-2">
         <NavItem href="/" icon="📊" label="Dashboard" active={activePath === '/'} />
         <NavItem href="/candidates" icon="🔍" label="Candidate Discovery" active={activePath === '/candidates'} />
+        <NavItem href="/jobs" icon="💼" label="Job Vacancies" active={activePath === '/jobs'} />
         <NavItem href="/pipelines" icon="📁" label="Pipelines" active={activePath === '/pipelines'} />
         <NavItem href="/outreach" icon="✉️" label="Outreach" active={activePath === '/outreach'} />
         <NavItem href="/analytics" icon="📈" label="Analytics" active={activePath === '/analytics'} />

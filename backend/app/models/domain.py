@@ -6,6 +6,19 @@ from datetime import datetime
 from app.models.base import Base
 import enum
 
+class JobStatus(str, enum.Enum):
+    ACTIVE = "ACTIVE"
+    PAUSED = "PAUSED"
+    CLOSED = "CLOSED"
+
+class ApplicationStatus(str, enum.Enum):
+    APPLIED = "APPLIED"
+    SCREENING = "SCREENING"
+    INTERVIEW = "INTERVIEW"
+    OFFER = "OFFER"
+    REJECTED = "REJECTED"
+    HIRED = "HIRED"
+
 class UserRole(str, enum.Enum):
     RECRUITER = "RECRUITER"
     ADMIN = "ADMIN"
@@ -32,6 +45,7 @@ class Candidate(Base):
     
     experience = relationship("Experience", back_populates="candidate")
     intelligence = relationship("Intelligence", back_populates="candidate", uselist=False)
+    applications = relationship("Application", back_populates="candidate")
 
 class Experience(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -57,3 +71,31 @@ class Intelligence(Base):
     embedding = Column(JSON) # Store vector as list for now, or use pgvector
     
     candidate = relationship("Candidate", back_populates="intelligence")
+
+class Job(Base):
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    recruiter_id = Column(UUID(as_uuid=True), ForeignKey("user.id"))
+    title = Column(String, nullable=False)
+    company = Column(String, nullable=False)
+    location = Column(String)
+    description = Column(Text)
+    requirements = Column(JSON) # List of requirements
+    salary_range = Column(String)
+    job_type = Column(String) # e.g., "Full-time", "Contract"
+    status = Column(Enum(JobStatus), default=JobStatus.ACTIVE)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    recruiter = relationship("User")
+    applications = relationship("Application", back_populates="job")
+
+class Application(Base):
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    job_id = Column(UUID(as_uuid=True), ForeignKey("job.id"))
+    candidate_id = Column(UUID(as_uuid=True), ForeignKey("candidate.id"))
+    status = Column(Enum(ApplicationStatus), default=ApplicationStatus.APPLIED)
+    applied_at = Column(DateTime, default=datetime.utcnow)
+    resume_url = Column(String) # Link to stored resume if any
+    notes = Column(Text)
+    
+    job = relationship("Job", back_populates="applications")
+    candidate = relationship("Candidate", back_populates="applications")

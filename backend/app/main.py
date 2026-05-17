@@ -30,3 +30,21 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/")
 async def root():
     return {"message": "Welcome to FinHireIQ API", "version": "1.0.0"}
+
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.api.deps import get_db
+
+@app.get("/health")
+async def health_check(db: Session = Depends(get_db)):
+    """
+    Health check endpoint. 
+    Queries the database to keep it awake on free tiers (like Supabase).
+    """
+    try:
+        # Simple query to ensure the DB connection is active
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        return {"status": "error", "database": "disconnected", "details": str(e)}

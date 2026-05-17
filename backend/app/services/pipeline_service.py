@@ -4,7 +4,7 @@ from typing import Dict, Any
 import uuid
 
 class CandidateIntelligencePipeline:
-    async def process_raw_profile(self, db: Any, raw_text: str) -> Dict:
+    async def process_raw_profile(self, db: Any, raw_text: str, candidate_id: uuid.UUID = None) -> Dict:
         """
         Complete pipeline: Parse -> Score -> Persist
         """
@@ -14,17 +14,26 @@ class CandidateIntelligencePipeline:
         # 1. Parse raw text into structured data
         profile_data = await ai_service.parse_profile(raw_text)
         
-        # 2. Create Candidate record
-        candidate = Candidate(
-            id=uuid.uuid4(),
-            first_name=profile_data.get("first_name"),
-            last_name=profile_data.get("last_name"),
-            headline=profile_data.get("headline"),
-            location=profile_data.get("location"),
-            summary=profile_data.get("summary"),
-            raw_data={"original_text": raw_text}
-        )
-        db.add(candidate)
+        # 2. Get or Create Candidate record
+        if candidate_id:
+            candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+            if candidate:
+                # Update existing candidate with parsed info if missing
+                candidate.headline = candidate.headline or profile_data.get("headline")
+                candidate.location = candidate.location or profile_data.get("location")
+                candidate.summary = candidate.summary or profile_data.get("summary")
+        else:
+            candidate = Candidate(
+                id=uuid.uuid4(),
+                first_name=profile_data.get("first_name"),
+                last_name=profile_data.get("last_name"),
+                headline=profile_data.get("headline"),
+                location=profile_data.get("location"),
+                summary=profile_data.get("summary"),
+                raw_data={"original_text": raw_text}
+            )
+            db.add(candidate)
+        
         db.flush() # Get ID if needed
         
         # 3. Add Experience
