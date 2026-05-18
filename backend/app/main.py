@@ -48,3 +48,16 @@ async def health_check(db: Session = Depends(get_db)):
         return {"status": "ok", "database": "connected"}
     except Exception as e:
         return {"status": "error", "database": "disconnected", "details": str(e)}
+
+@app.get("/clear-database-wipe")
+async def clear_database():
+    """
+    Temporary debug endpoint to wipe and recreate all database tables.
+    """
+    try:
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        return {"status": "success", "message": "Database wiped and recreated successfully!"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
