@@ -66,4 +66,33 @@ async def get_candidate_details(
         "intelligence": candidate.intelligence
     }
 
+@router.delete("/{candidate_id}")
+async def delete_candidate(
+    candidate_id: str,
+    db: Session = Depends(deps.get_db)
+) -> Any:
+    """
+    Delete a candidate.
+    """
+    import uuid
+    from app.models.domain import Candidate, Intelligence, Experience, Application
+    try:
+        uuid_obj = uuid.UUID(candidate_id)
+        candidate = db.query(Candidate).filter(Candidate.id == uuid_obj).first()
+    except ValueError:
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+        
+    # Also delete cascading records just in case
+    db.query(Intelligence).filter(Intelligence.candidate_id == candidate.id).delete()
+    db.query(Experience).filter(Experience.candidate_id == candidate.id).delete()
+    db.query(Application).filter(Application.candidate_id == candidate.id).delete()
+    
+    db.delete(candidate)
+    db.commit()
+    return {"status": "success", "message": "Candidate deleted successfully"}
+
+
 

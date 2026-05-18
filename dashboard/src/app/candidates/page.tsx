@@ -90,12 +90,15 @@ export default function CandidatesPage() {
                 results.map((c: any) => (
                   <CandidateCard 
                     key={c.id}
+                    id={c.id}
                     name={c.full_name} 
                     role={c.headline} 
                     location={c.location} 
                     score={c.match_score}
                     summary={c.summary}
                     skills={c.skills}
+                    source={c.source}
+                    onDelete={handleSearch}
                   />
                 ))
               ) : (
@@ -111,8 +114,29 @@ export default function CandidatesPage() {
   );
 }
 
-function CandidateCard({ name, role, location, score, summary, skills }: { name: string, role: string, location: string, score: string, summary: string, skills: string[] }) {
+function CandidateCard({ 
+  id, 
+  name, 
+  role, 
+  location, 
+  score, 
+  summary, 
+  skills, 
+  source, 
+  onDelete 
+}: { 
+  id: string, 
+  name: string, 
+  role: string, 
+  location: string, 
+  score: string, 
+  summary: string, 
+  skills: string[], 
+  source?: string, 
+  onDelete?: () => void 
+}) {
   const [isShortlisting, setIsShortlisting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleShortlist = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -123,11 +147,30 @@ function CandidateCard({ name, role, location, score, summary, skills }: { name:
         method: 'POST'
       });
       alert(`Successfully added ${name} to your Talent Pool / Shortlist!`);
+      if (onDelete) onDelete();
     } catch (error) {
       console.error('Failed to shortlist', error);
       alert(`Failed to shortlist ${name}.`);
     } finally {
       setIsShortlisting(false);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm(`Are you sure you want to delete ${name} from the database?`)) {
+      setIsDeleting(true);
+      try {
+        await fetchWithAuth(`/candidates/${id}`, {
+          method: 'DELETE'
+        });
+        if (onDelete) onDelete();
+      } catch (error) {
+        console.error('Failed to delete candidate', error);
+        alert(`Failed to delete ${name}.`);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -167,18 +210,29 @@ function CandidateCard({ name, role, location, score, summary, skills }: { name:
           ))}
         </div>
         <div className="flex gap-4 items-center">
+          {source === 'database' && (
+            <button 
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="text-red-500 text-xs font-bold hover:underline"
+            >
+              {isDeleting ? 'Deleting...' : '🗑️ Delete Candidate'}
+            </button>
+          )}
           <button className="text-blue-600 text-xs font-bold hover:underline">View Intelligence Report →</button>
-          <button 
-            onClick={handleShortlist}
-            disabled={isShortlisting}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-              isShortlisting 
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-            }`}
-          >
-            {isShortlisting ? 'Saving...' : '+ Shortlist'}
-          </button>
+          {source !== 'database' && (
+            <button 
+              onClick={handleShortlist}
+              disabled={isShortlisting}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                isShortlisting 
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              }`}
+            >
+              {isShortlisting ? 'Saving...' : '+ Shortlist'}
+            </button>
+          )}
         </div>
       </div>
     </div>

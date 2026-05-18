@@ -47,6 +47,27 @@ async def create_job(
     db.refresh(job)
     return job
 
+@router.delete("/{job_id}")
+async def delete_job(
+    job_id: str,
+    db: Session = Depends(deps.get_db)
+) -> Any:
+    """
+    Delete a job vacancy.
+    """
+    try:
+        uuid_obj = uuid.UUID(job_id)
+        job = db.query(Job).filter(Job.id == uuid_obj).first()
+    except ValueError:
+        job = db.query(Job).filter(Job.id == job_id).first()
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+        
+    db.delete(job)
+    db.commit()
+    return {"status": "success", "message": "Job deleted successfully"}
+
 @router.get("/{job_id}", response_model=JobSchema)
 async def get_job_public(
     job_id: str,

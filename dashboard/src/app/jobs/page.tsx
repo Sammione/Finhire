@@ -48,6 +48,20 @@ export default function JobsPage() {
     }
   };
 
+  const handleDeleteJob = async (jobId: string) => {
+    if (confirm("Are you sure you want to delete this job vacancy? This will also remove its application link.")) {
+      try {
+        await fetchWithAuth(`/jobs/${jobId}`, {
+          method: 'DELETE'
+        });
+        loadJobs();
+      } catch (error) {
+        console.error("Failed to delete job", error);
+        alert("Failed to delete job");
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar activePath="/jobs" />
@@ -81,9 +95,18 @@ export default function JobsPage() {
                       <h3 className="font-bold text-lg text-slate-800">{job.title}</h3>
                       <p className="text-slate-500 text-sm">{job.company} • {job.location}</p>
                     </div>
-                    <span className="bg-green-100 text-green-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
-                      {job.status}
-                    </span>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="bg-green-100 text-green-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
+                        {job.status}
+                      </span>
+                      <button 
+                        onClick={() => handleDeleteJob(job.id)}
+                        className="text-red-500 hover:text-red-700 text-xs font-bold transition-colors flex items-center gap-1"
+                        title="Delete vacancy"
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="space-y-3 mb-6">
