@@ -9,7 +9,7 @@ class ExternalSearchService:
         self.github_api_url = "https://api.github.com/search/users"
         self.github_user_url = "https://api.github.com/users"
         self.serpapi_key = os.getenv("SERPAPI_API_KEY", "")
-        self.apify_token = os.getenv("APIFY_API_TOKEN", "")
+        self.rapidapi_key = os.getenv("RAPIDAPI_KEY", "")
 
     async def search_candidates(self, query: str) -> List[Dict[str, Any]]:
         """Main entry point to fetch real candidates from multiple net sources."""
@@ -43,7 +43,7 @@ class ExternalSearchService:
                         "engine": "google",
                         "q": search_query,
                         "api_key": self.serpapi_key,
-                        "num": 10  # Get top 10 instantly
+                        "num": 20  # Get top 20 instantly
                     },
                     timeout=10.0
                 )
@@ -84,38 +84,47 @@ class ExternalSearchService:
         print(f"Total candidates discovered from web: {len(candidates)}")
         return candidates
 
-    async def deep_source_candidates(self, query: str) -> Dict[str, Any]:
-        """Trigger Apify Background Task for Deep Sourcing (Hundreds of resumes)."""
-        if not self.apify_token:
-            return {"status": "error", "message": "APIFY_API_TOKEN is not set."}
-        
-        # This calls a specific Apify actor (e.g., an Indeed Scraper) in the background
+    async def enrich_linkedin_profiles(self, urls: List[str]) -> List[Dict[str, Any]]:
+        """Use RapidAPI (Real-Time LinkedIn Scraper API) to extract full profiles."""
+        if not self.rapidapi_key:
+            print("ERROR: RAPIDAPI_KEY is not set.")
+            return []
+            
+        if not urls:
+            return []
+            
+        enriched = []
         async with httpx.AsyncClient() as client:
-            try:
-                print(f"Triggering Apify Deep Source for: {query}")
-                # We use a placeholder Indeed scraper Actor ID here
-                actor_id = "hynek~indeed-scraper"
-                response = await client.post(
-                    f"https://api.apify.com/v2/acts/{actor_id}/runs?token={self.apify_token}",
-                    json={
-                        "searchTerms": [query],
-                        "maxItems": 500
-                    },
-                    timeout=10.0
-                )
-                response.raise_for_status()
-                data = response.json()
-                run_id = data.get("data", {}).get("id")
-                
-                return {
-                    "status": "success", 
-                    "message": "Deep sourcing started in the background.",
-                    "run_id": run_id
-                }
-            except Exception as e:
-                print(f"Apify Deep Source failed: {e}")
-                return {"status": "error", "message": str(e)}
-
+            for url in urls:
+                try:
+                    print(f"Triggering RapidAPI LinkedIn Scraper for: {url}")
+                    
+                    response = await client.get(
+                        "https://linkedin-data-api.p.rapidapi.com/get-profile-data-by-url",
+                        headers={
+                            "x-rapidapi-key": self.rapidapi_key,
+                            "x-rapidapi-host": "linkedin-data-api.p.rapidapi.com"
+                        },
+                        params={
+                            "linkedin_url": url
+                        },
+                        timeout=30.0
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get("success"):
+                            enriched.append(data.get("data", {}))
+                            print(f"✅ RapidAPI Enrichment Success for {url}")
+                        else:
+                            print(f"❌ RapidAPI Failed for {url}: {data.get('message')}")
+                    else:
+                        print(f"❌ RapidAPI HTTP Error {response.status_code} for {url}")
+                        
+                except Exception as e:
+                    print(f"❌ RapidAPI Enrichment Exception for {url}: {e}")
+                    
+        return enriched
 
     async def search_github_candidates(self, query: str) -> List[Dict[str, Any]]:
         """Search GitHub for real professional profiles (best for tech)."""
