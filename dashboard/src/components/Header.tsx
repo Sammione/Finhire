@@ -16,7 +16,7 @@ export default function Header() {
         setUser(data);
       } catch (error) {
         // Fallback for MVP if endpoint fails or not logged in
-        setUser({ full_name: 'Sarah Jenkins', role: 'Recruitment Director' });
+        setUser({ full_name: 'Francis Abimbola', role: 'Recruitment Director' });
       }
     };
     loadUser();

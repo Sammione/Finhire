@@ -22,7 +22,7 @@ class MockDatabase:
 
         # Initial candidates for demo
         self._add_demo_candidate(
-            "Sarah Jenkins", "Senior Loan Officer", "Seattle, WA", 
+            "Francis Abimbola", "Senior Loan Officer", "Lagos, NG", 
             0.98, "Highly experienced loan officer with 8+ years in the fintech sector.",
             ["Mortgage", "Underwriting", "Fintech"]
         )

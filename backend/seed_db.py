@@ -16,21 +16,21 @@ def seed():
 
         print("Seeding database with initial candidates...")
         
-        # Candidate 1: Sarah Jenkins (Transferred from mock to real)
-        sarah = Candidate(
+        # Candidate 1: Francis Abimbola (Transferred from mock to real)
+        francis = Candidate(
             id=uuid.uuid4(),
-            first_name="Sarah",
-            last_name="Jenkins",
+            first_name="Francis",
+            last_name="Abimbola",
             headline="Senior Loan Officer",
-            location="Seattle, WA",
+            location="Lagos, NG",
             summary="Highly experienced loan officer with 8+ years in the fintech sector. Specialized in residential mortgages.",
             raw_data={"source": "seed"}
         )
-        db.add(sarah)
+        db.add(francis)
         db.flush()
         
         db.add(Intelligence(
-            candidate_id=sarah.id,
+            candidate_id=francis.id,
             overall_score=0.98,
             stability_score=0.93,
             relevance_score=0.98,

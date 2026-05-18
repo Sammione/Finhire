@@ -37,7 +37,7 @@ async def read_users_me(db: Any = Depends(deps.get_db)) -> Any:
     # Once full auth is wired up, this will decode the JWT and return the real DB user.
     return {
         "id": "1",
-        "full_name": "Sarah Jenkins",
+        "full_name": "Francis Abimbola",
         "email": "admin@finhire.iq",
         "role": "Recruitment Director"
     }
