@@ -10,6 +10,7 @@ export default function CandidatesPage() {
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [results, setResults] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -19,6 +20,12 @@ export default function CandidatesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [detailData, setDetailData] = useState<any>(null);
+
+  // Shortlisting Target Job Popup State
+  const [isShortlistPopupOpen, setIsShortlistPopupOpen] = useState(false);
+  const [candidateToShortlist, setCandidateToShortlist] = useState<any>(null);
+  const [targetJobId, setTargetJobId] = useState<string>('');
+  const [isShortlisting, setIsShortlisting] = useState(false);
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -35,6 +42,18 @@ export default function CandidatesPage() {
       console.error("Search failed", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadJobs = async () => {
+    try {
+      const data = await fetchWithAuth('/jobs/');
+      setJobs(data);
+      if (data.length > 0) {
+        setTargetJobId(data[0].id);
+      }
+    } catch (error) {
+      console.error("Failed to load jobs list", error);
     }
   };
 
@@ -112,8 +131,49 @@ export default function CandidatesPage() {
     }
   };
 
+  const triggerShortlistPopup = (candidate: any) => {
+    if (jobs.length === 0) {
+      alert("You currently have no open Job Vacancies. Please create a Job Vacancy first in order to shortlist candidates to a pipeline.");
+      return;
+    }
+    setCandidateToShortlist(candidate);
+    setIsShortlistPopupOpen(true);
+  };
+
+  const handleConfirmShortlist = async () => {
+    if (!candidateToShortlist) return;
+    setIsShortlisting(true);
+    try {
+      const name = candidateToShortlist.full_name || candidateToShortlist.name;
+      const role = candidateToShortlist.headline || candidateToShortlist.role;
+      const loc = candidateToShortlist.location;
+      const summ = candidateToShortlist.summary;
+      const sk = candidateToShortlist.skills;
+      
+      const rawProfileText = `${name} - ${role}. Location: ${loc}. Summary: ${summ}. Skills: ${sk?.join(', ')}`;
+      
+      let url = `/candidates/ingest?raw_text=${encodeURIComponent(rawProfileText)}`;
+      if (targetJobId) {
+        url += `&job_id=${encodeURIComponent(targetJobId)}`;
+      }
+      
+      await fetchWithAuth(url, { method: 'POST' });
+      alert(`Successfully shortlisted ${name} and added them directly to your Pipeline!`);
+      
+      setIsShortlistPopupOpen(false);
+      setIsModalOpen(false);
+      handleSearch();
+    } catch (error) {
+      console.error("Failed to shortlist candidate", error);
+      alert("Failed to shortlist candidate.");
+    } finally {
+      setIsShortlisting(false);
+    }
+  };
+
   useEffect(() => {
     handleSearch();
+    loadJobs();
   }, []);
 
   return (
@@ -195,6 +255,7 @@ export default function CandidatesPage() {
                       source={c.source}
                       onDelete={handleSearch}
                       onViewReport={() => openReport(c)}
+                      onShortlist={() => triggerShortlistPopup(c)}
                     />
                   ))}
                   
@@ -385,24 +446,65 @@ export default function CandidatesPage() {
               </button>
               {selectedCandidate?.source !== 'database' && (
                 <button 
-                  onClick={async () => {
-                    const rawProfileText = `${selectedCandidate.full_name || selectedCandidate.name} - ${selectedCandidate.headline || selectedCandidate.role}. Location: ${selectedCandidate.location}. Summary: ${selectedCandidate.summary}. Skills: ${selectedCandidate.skills?.join(', ')}`;
-                    try {
-                      await fetchWithAuth(`/candidates/ingest?raw_text=${encodeURIComponent(rawProfileText)}`, {
-                        method: 'POST'
-                      });
-                      alert(`Successfully shortlisted ${selectedCandidate.full_name || selectedCandidate.name}!`);
-                      setIsModalOpen(false);
-                      handleSearch();
-                    } catch (err) {
-                      alert("Error shortlisting candidate.");
-                    }
-                  }}
+                  onClick={() => triggerShortlistPopup(selectedCandidate)}
                   className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 rounded-xl transition-all"
                 >
                   + Add to Shortlist
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Target Job Shortlist Selection Popup Dialog */}
+      {isShortlistPopupOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in duration-150 text-slate-800 p-6">
+            <h3 className="font-bold text-lg text-slate-800 mb-2">Shortlist Candidate</h3>
+            <p className="text-xs text-slate-400 leading-relaxed mb-6">
+              Select which active Job Vacancy pipeline you would like to automatically ingest and track this candidate for.
+            </p>
+
+            <div className="space-y-4 mb-6">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Target Vacancy Pipeline</label>
+                <select 
+                  value={targetJobId}
+                  onChange={(e) => setTargetJobId(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 transition-all text-slate-700 shadow-sm"
+                >
+                  {jobs.map((job) => (
+                    <option key={job.id} value={job.id}>
+                      {job.title} ({job.company})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setIsShortlistPopupOpen(false)}
+                disabled={isShortlisting}
+                className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-lg transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleConfirmShortlist}
+                disabled={isShortlisting}
+                className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 rounded-lg transition-all flex items-center gap-1.5"
+              >
+                {isShortlisting ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Processing Ingestion...</span>
+                  </>
+                ) : (
+                  <span>Add to Pipeline</span>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -440,7 +542,8 @@ function CandidateCard({
   skills, 
   source, 
   onDelete,
-  onViewReport
+  onViewReport,
+  onShortlist
 }: { 
   id: string, 
   name: string, 
@@ -451,28 +554,10 @@ function CandidateCard({
   skills: string[], 
   source?: string, 
   onDelete?: () => void,
-  onViewReport: () => void
+  onViewReport: () => void,
+  onShortlist: () => void
 }) {
-  const [isShortlisting, setIsShortlisting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleShortlist = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsShortlisting(true);
-    try {
-      const rawProfileText = `${name} - ${role}. Location: ${location}. Summary: ${summary}. Skills: ${skills?.join(', ')}`;
-      await fetchWithAuth(`/candidates/ingest?raw_text=${encodeURIComponent(rawProfileText)}`, {
-        method: 'POST'
-      });
-      alert(`Successfully added ${name} to your Talent Pool / Shortlist!`);
-      if (onDelete) onDelete();
-    } catch (error) {
-      console.error('Failed to shortlist', error);
-      alert(`Failed to shortlist ${name}.`);
-    } finally {
-      setIsShortlisting(false);
-    }
-  };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -548,15 +633,13 @@ function CandidateCard({
           </button>
           {source !== 'database' && (
             <button 
-              onClick={handleShortlist}
-              disabled={isShortlisting}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                isShortlisting 
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onShortlist();
+              }}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
             >
-              {isShortlisting ? 'Saving...' : '+ Shortlist'}
+              + Shortlist
             </button>
           )}
         </div>

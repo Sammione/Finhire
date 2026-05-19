@@ -4,11 +4,11 @@ from typing import Dict, Any
 import uuid
 
 class CandidateIntelligencePipeline:
-    async def process_raw_profile(self, db: Any, raw_text: str, candidate_id: uuid.UUID = None) -> Dict:
+    async def process_raw_profile(self, db: Any, raw_text: str, candidate_id: uuid.UUID = None, job_id: str = None) -> Dict:
         """
-        Complete pipeline: Parse -> Score -> Persist
+        Complete pipeline: Parse -> Score -> Persist -> Associate with Pipeline
         """
-        from app.models.domain import Candidate, Intelligence, Experience
+        from app.models.domain import Candidate, Intelligence, Experience, Job, Application, ApplicationStatus
         import uuid
 
         # 1. Parse raw text into structured data
@@ -59,6 +59,32 @@ class CandidateIntelligencePipeline:
             risk_indicators=intelligence_data.get("risk_indicators", [])
         )
         db.add(intelligence)
+        
+        # 6. Associate Candidate with a recruitment Job / Application
+        resolved_job_id = None
+        if job_id and job_id.strip() != "":
+            try:
+                resolved_job_id = uuid.UUID(job_id)
+            except ValueError:
+                resolved_job_id = job_id
+        else:
+            # Fallback: link to the first active job vacancy in the database so they appear in pipelines
+            first_job = db.query(Job).first()
+            resolved_job_id = first_job.id if first_job else None
+            
+        if resolved_job_id:
+            # Check if application already exists
+            existing_app = db.query(Application).filter(
+                Application.candidate_id == candidate.id,
+                Application.job_id == resolved_job_id
+            ).first()
+            
+            if not existing_app:
+                db.add(Application(
+                    candidate_id=candidate.id,
+                    job_id=resolved_job_id,
+                    status=ApplicationStatus.APPLIED
+                ))
         
         db.commit()
         

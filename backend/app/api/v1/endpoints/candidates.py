@@ -10,13 +10,14 @@ router = APIRouter()
 @router.post("/ingest")
 async def ingest_candidate(
     raw_text: str,
+    job_id: Optional[str] = Query(None, description="Job vacancy to shortlist for"),
     db: Session = Depends(deps.get_db)
 ) -> Any:
     """
     Ingest a raw professional profile text and run the AI intelligence pipeline.
     """
     try:
-        candidate = await intelligence_pipeline.process_raw_profile(db, raw_text)
+        candidate = await intelligence_pipeline.process_raw_profile(db, raw_text, job_id=job_id)
         return {"id": candidate["id"], "status": "processed"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
