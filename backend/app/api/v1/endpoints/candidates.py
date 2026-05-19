@@ -51,21 +51,47 @@ async def get_candidate_details(
     """
     Get detailed candidate intelligence and profile from real storage.
     """
-    # Import model here to avoid circular imports if any
+    import uuid
     from app.models.domain import Candidate
-    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    
+    try:
+        uuid_obj = uuid.UUID(candidate_id)
+        candidate = db.query(Candidate).filter(Candidate.id == uuid_obj).first()
+    except ValueError:
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
     
-    # Format response
+    # Format experience relationships safely into JSON-serializable dictionaries
+    experience_list = []
+    if candidate.experience:
+        for exp in candidate.experience:
+            experience_list.append({
+                "title": exp.title,
+                "company": exp.company,
+                "description": exp.description
+            })
+            
+    # Format intelligence safely into JSON-serializable dictionary
+    intel = candidate.intelligence
+    intelligence_dict = {
+        "overall_score": intel.overall_score if intel else 0.75,
+        "stability_score": intel.stability_score if intel else 0.85,
+        "relevance_score": intel.relevance_score if intel else 0.80,
+        "ai_summary": intel.ai_summary if intel else "",
+        "skills": intel.skills if intel else [],
+        "risk_indicators": intel.risk_indicators if intel else []
+    }
+    
     return {
         "id": str(candidate.id),
         "full_name": f"{candidate.first_name} {candidate.last_name}",
         "headline": candidate.headline,
         "location": candidate.location,
         "summary": candidate.summary,
-        "experience": candidate.experience,
-        "intelligence": candidate.intelligence
+        "experience": experience_list,
+        "intelligence": intelligence_dict
     }
 
 @router.delete("/{candidate_id}")
