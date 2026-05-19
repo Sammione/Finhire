@@ -4,7 +4,7 @@ from typing import Dict, Any
 import uuid
 
 class CandidateIntelligencePipeline:
-    async def process_raw_profile(self, db: Any, raw_text: str, candidate_id: uuid.UUID = None, job_id: str = None) -> Dict:
+    async def process_raw_profile(self, db: Any, raw_text: str, candidate_id: uuid.UUID = None, job_id: str = None, profile_url: str = None) -> Dict:
         """
         Complete pipeline: Parse -> Score -> Persist -> Associate with Pipeline
         """
@@ -22,6 +22,11 @@ class CandidateIntelligencePipeline:
                 candidate.headline = candidate.headline or profile_data.get("headline")
                 candidate.location = candidate.location or profile_data.get("location")
                 candidate.summary = candidate.summary or profile_data.get("summary")
+                if profile_url:
+                    if not candidate.raw_data:
+                        candidate.raw_data = {"original_url": profile_url}
+                    elif isinstance(candidate.raw_data, dict):
+                        candidate.raw_data["original_url"] = profile_url
         else:
             candidate = Candidate(
                 id=uuid.uuid4(),
@@ -30,7 +35,7 @@ class CandidateIntelligencePipeline:
                 headline=profile_data.get("headline"),
                 location=profile_data.get("location"),
                 summary=profile_data.get("summary"),
-                raw_data={"original_text": raw_text}
+                raw_data={"original_text": raw_text, "original_url": profile_url}
             )
             db.add(candidate)
         

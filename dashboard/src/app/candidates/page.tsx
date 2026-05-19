@@ -156,6 +156,9 @@ export default function CandidatesPage() {
       if (targetJobId) {
         url += `&job_id=${encodeURIComponent(targetJobId)}`;
       }
+      if (candidateToShortlist.profile_url) {
+        url += `&profile_url=${encodeURIComponent(candidateToShortlist.profile_url)}`;
+      }
       
       await fetchWithAuth(url, { method: 'POST' });
       alert(`Successfully shortlisted ${name} and added them directly to your Pipeline!`);
