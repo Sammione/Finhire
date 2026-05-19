@@ -81,7 +81,7 @@ class ExternalSearchService:
         return web_results + gh_results
 
     async def search_web_candidates(self, query: str, location: str = "", page: int = 1) -> List[Dict[str, Any]]:
-        """Search the web for professional profiles using SerpApi (Instant Search)."""
+        """Search the web for professional profiles using SerpApi in parallel."""
         if not query:
             return []
 
@@ -134,29 +134,52 @@ class ExternalSearchService:
 
         async with httpx.AsyncClient() as client:
             try:
-                print(f"Executing SerpApi web discovery: {search_query}")
-                response = await client.get(
-                    "https://serpapi.com/search.json",
-                    params={
-                        "engine": "google",
-                        "q": search_query,
-                        "api_key": self.serpapi_key,
-                        "num": 20,
-                        "start": (page - 1) * 10
-                    },
-                    timeout=10.0
-                )
-                response.raise_for_status()
-                data = response.json()
-                results = data.get("organic_results", [])
+                # To pull high-volume (50+ candidates) for free, make 5 concurrent requests in parallel!
+                async def fetch_serpapi_page(start_idx):
+                    try:
+                        print(f"Triggering parallel SerpApi page fetch at offset: {start_idx}")
+                        response = await client.get(
+                            "https://serpapi.com/search.json",
+                            params={
+                                "engine": "google",
+                                "q": search_query,
+                                "api_key": self.serpapi_key,
+                                "num": 10,
+                                "start": start_idx
+                            },
+                            timeout=10.0
+                        )
+                        if response.status_code == 200:
+                            return response.json().get("organic_results", [])
+                        return []
+                    except Exception as err:
+                        print(f"SerpApi concurrent page error at start {start_idx}: {err}")
+                        return []
+
+                # Paginate in blocks of 50 candidates per frontend page click
+                base_start = (page - 1) * 50
+                start_offsets = [base_start + i * 10 for i in range(5)]
                 
-                print(f"Found {len(results)} raw web snippets from SerpApi.")
+                print(f"Executing 5 concurrent SerpApi queries for {search_query} starts: {start_offsets}")
+                tasks = [fetch_serpapi_page(offset) for offset in start_offsets]
+                pages_results = await asyncio.gather(*tasks)
                 
-                for r in results:
+                # Merge all parallel pages into a single organic list
+                organic_results = []
+                for p_res in pages_results:
+                    if p_res:
+                        organic_results.extend(p_res)
+                        
+                print(f"Aggregated {len(organic_results)} raw web snippets from parallel SerpApi searches.")
+                
+                for r in organic_results:
                     title = r.get("title", "")
                     link = r.get("link", "")
                     snippet = r.get("snippet", "")
                     
+                    if not title or not link:
+                        continue
+                        
                     if "job" in title.lower() or "hiring" in title.lower() or "/jobs/" in link:
                         continue
 
@@ -182,7 +205,8 @@ class ExternalSearchService:
                         "match_score": "Analyzing..."
                     }
                     
-                    if not any(c['full_name'] == name for c in candidates):
+                    # Prevent adding duplicate profiles in the same query
+                    if not any(c['full_name'] == name or c['profile_url'] == link for c in candidates):
                         candidates.append(candidate)
 
             except Exception as e:
