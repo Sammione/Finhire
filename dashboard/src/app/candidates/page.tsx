@@ -253,6 +253,7 @@ export default function CandidatesPage() {
                       summary={c.summary}
                       skills={c.skills}
                       source={c.source}
+                      profile_url={c.profile_url}
                       onDelete={handleSearch}
                       onViewReport={() => openReport(c)}
                       onShortlist={() => triggerShortlistPopup(c)}
@@ -309,6 +310,16 @@ export default function CandidatesPage() {
                 <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                   <span>📍</span> {selectedCandidate?.location}
                 </p>
+                {selectedCandidate?.profile_url && (
+                  <a 
+                    href={selectedCandidate.profile_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-200 text-xs font-bold rounded-xl mt-3 transition-all"
+                  >
+                    <span>🔗</span> View Direct Public Profile
+                  </a>
+                )}
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
@@ -541,6 +552,7 @@ function CandidateCard({
   summary, 
   skills, 
   source, 
+  profile_url,
   onDelete,
   onViewReport,
   onShortlist
@@ -553,6 +565,7 @@ function CandidateCard({
   summary: string, 
   skills: string[], 
   source?: string, 
+  profile_url?: string,
   onDelete?: () => void,
   onViewReport: () => void,
   onShortlist: () => void
@@ -613,6 +626,17 @@ function CandidateCard({
           ))}
         </div>
         <div className="flex gap-4 items-center">
+          {profile_url && (
+            <a 
+              href={profile_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors flex items-center gap-1 shadow-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span>🔗</span> Profile
+            </a>
+          )}
           {source === 'database' && (
             <button 
               onClick={handleDelete}

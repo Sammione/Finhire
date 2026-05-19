@@ -178,6 +178,7 @@ class ExternalSearchService:
                         "skills": [query],
                         "summary": snippet,
                         "experience_text": snippet,
+                        "profile_url": link,
                         "match_score": "Analyzing..."
                     }
                     
@@ -266,6 +267,7 @@ class ExternalSearchService:
                             "skills": ["GitHub"],
                             "summary": user_data.get("bio") or "Active contributor on GitHub.",
                             "experience_text": f"Public repositories: {user_data.get('public_repos')}.",
+                            "profile_url": user_data.get("html_url"),
                             "match_score": "Calculating..."
                         }
                         

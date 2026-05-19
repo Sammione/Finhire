@@ -84,12 +84,17 @@ async def get_candidate_details(
         "risk_indicators": intel.risk_indicators if intel else []
     }
     
+    orig_url = None
+    if candidate.raw_data and isinstance(candidate.raw_data, dict):
+        orig_url = candidate.raw_data.get("original_url")
+        
     return {
         "id": str(candidate.id),
         "full_name": f"{candidate.first_name} {candidate.last_name}",
         "headline": candidate.headline,
         "location": candidate.location,
         "summary": candidate.summary,
+        "profile_url": orig_url,
         "experience": experience_list,
         "intelligence": intelligence_dict
     }

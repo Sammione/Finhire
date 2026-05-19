@@ -76,6 +76,11 @@ class SearchService:
         
         db_candidates = db_query.all()
         for cand in db_candidates:
+            # Safely fetch original url from raw_data if available
+            orig_url = None
+            if cand.raw_data and isinstance(cand.raw_data, dict):
+                orig_url = cand.raw_data.get("original_url")
+                
             results.append({
                 "id": str(cand.id),
                 "full_name": f"{cand.first_name} {cand.last_name}",
@@ -84,6 +89,7 @@ class SearchService:
                 "match_score": f"{int((cand.intelligence.overall_score if cand.intelligence else 0.5) * 100)}%",
                 "source": "database",
                 "summary": cand.summary,
+                "profile_url": orig_url,
                 "skills": cand.intelligence.skills if cand.intelligence else []
             })
 
