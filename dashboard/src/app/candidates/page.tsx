@@ -310,16 +310,14 @@ export default function CandidatesPage() {
                 <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                   <span>📍</span> {selectedCandidate?.location}
                 </p>
-                {selectedCandidate?.profile_url && (
-                  <a 
-                    href={selectedCandidate.profile_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-200 text-xs font-bold rounded-xl mt-3 transition-all"
-                  >
-                    <span>🔗</span> View Direct Public Profile
-                  </a>
-                )}
+                <a 
+                  href={selectedCandidate?.profile_url || `https://www.google.com/search?q=site:linkedin.com/in/+${encodeURIComponent(selectedCandidate?.full_name || selectedCandidate?.name || "")}+${encodeURIComponent(selectedCandidate?.headline || selectedCandidate?.role || "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-200 text-xs font-bold rounded-xl mt-3 transition-all"
+                >
+                  <span>🔗</span> {selectedCandidate?.profile_url ? 'View Direct Public Profile' : 'Find Profile on LinkedIn'}
+                </a>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
@@ -626,17 +624,15 @@ function CandidateCard({
           ))}
         </div>
         <div className="flex gap-4 items-center">
-          {profile_url && (
-            <a 
-              href={profile_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors flex items-center gap-1 shadow-sm"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span>🔗</span> Profile
-            </a>
-          )}
+          <a 
+            href={profile_url || `https://www.google.com/search?q=site:linkedin.com/in/+${encodeURIComponent(name)}+${encodeURIComponent(role)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors flex items-center gap-1 shadow-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span>🔗</span> Profile
+          </a>
           {source === 'database' && (
             <button 
               onClick={handleDelete}
