@@ -7,6 +7,8 @@ import MobileNav from '@/components/MobileNav';
 import { fetchWithAuth } from '@/lib/api';
 
 export default function PipelinesPage() {
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState<string>('');
   const [pipeline, setPipeline] = useState<any>({
     Sourced: [],
     Screening: [],
@@ -15,9 +17,14 @@ export default function PipelinesPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  const loadPipeline = async () => {
+  const loadPipeline = async (jobId?: string) => {
+    setLoading(true);
     try {
-      const data = await fetchWithAuth('/pipelines');
+      let url = '/pipelines';
+      if (jobId) {
+        url += `?job_id=${encodeURIComponent(jobId)}`;
+      }
+      const data = await fetchWithAuth(url);
       setPipeline(data);
     } catch (error) {
       console.error("Failed to load pipeline candidates", error);
@@ -26,9 +33,31 @@ export default function PipelinesPage() {
     }
   };
 
+  const loadJobsAndPipeline = async () => {
+    try {
+      const jobsData = await fetchWithAuth('/jobs/');
+      setJobs(jobsData);
+      if (jobsData.length > 0) {
+        setSelectedJobId(jobsData[0].id);
+        await loadPipeline(jobsData[0].id);
+      } else {
+        await loadPipeline();
+      }
+    } catch (error) {
+      console.error("Failed to load initial data", error);
+      await loadPipeline();
+    }
+  };
+
   useEffect(() => {
-    loadPipeline();
+    loadJobsAndPipeline();
   }, []);
+
+  const handleJobChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const jobId = e.target.value;
+    setSelectedJobId(jobId);
+    loadPipeline(jobId);
+  };
 
   const moveCandidate = async (candidateId: string, newStage: string) => {
     // Optimistic UI update
@@ -52,10 +81,14 @@ export default function PipelinesPage() {
       
       // Update backend
       try {
-        await fetchWithAuth(`/pipelines/${candidateId}/stage?stage=${newStage}`, { method: 'PUT' });
+        let url = `/pipelines/${candidateId}/stage?stage=${encodeURIComponent(newStage)}`;
+        if (selectedJobId) {
+          url += `&job_id=${encodeURIComponent(selectedJobId)}`;
+        }
+        await fetchWithAuth(url, { method: 'PUT' });
       } catch (error) {
         console.error("Failed to update stage", error);
-        loadPipeline(); // rollback
+        loadPipeline(selectedJobId); // rollback
       }
     }
   };
@@ -67,14 +100,29 @@ export default function PipelinesPage() {
       <main className="lg:pl-64 pb-20 lg:pb-0">
         <Header />
         <div className="p-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 border-b border-slate-200 pb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Recruitment Pipelines</h1>
               <p className="text-slate-500 mt-1 text-sm sm:text-base">Manage your active candidate hiring stages.</p>
             </div>
-            <button onClick={() => alert('Feature coming soon: Custom Pipeline Creation')} className="w-full sm:w-auto text-center bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
-              + Create Pipeline
-            </button>
+            
+            <div className="flex flex-col gap-1 w-full sm:w-72">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Filter by Vacancy</label>
+              <select 
+                value={selectedJobId}
+                onChange={handleJobChange}
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 transition-all text-slate-700 shadow-sm"
+              >
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title} ({job.company})
+                  </option>
+                ))}
+                {jobs.length === 0 && (
+                  <option value="">No Active Jobs Found</option>
+                )}
+              </select>
+            </div>
           </div>
 
           <div className="flex gap-6 overflow-x-auto pb-4">
@@ -87,10 +135,12 @@ export default function PipelinesPage() {
               >
                 {loading ? (
                   <div className="p-4 text-center text-xs text-slate-400">Loading...</div>
-                ) : (
+                ) : pipeline[stage].length > 0 ? (
                   pipeline[stage].map((c: any) => (
                     <PipelineCard key={c.id} id={c.id} name={c.full_name} score={c.match_score} time={c.time} />
                   ))
+                ) : (
+                  <div className="p-4 text-center text-xs text-slate-400 italic">No candidates in this stage</div>
                 )}
               </PipelineColumn>
             ))}

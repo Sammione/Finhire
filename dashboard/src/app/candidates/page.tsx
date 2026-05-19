@@ -8,6 +8,7 @@ import { fetchWithAuth } from '@/lib/api';
 
 export default function CandidatesPage() {
   const [query, setQuery] = useState('');
+  const [location, setLocation] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,7 +16,11 @@ export default function CandidatesPage() {
     if (e) e.preventDefault();
     setLoading(true);
     try {
-      const data = await fetchWithAuth(`/candidates/search?q=${encodeURIComponent(query)}`);
+      let url = `/candidates/search?q=${encodeURIComponent(query)}`;
+      if (location) {
+        url += `&location=${encodeURIComponent(location)}`;
+      }
+      const data = await fetchWithAuth(url);
       setResults(data);
     } catch (error) {
       console.error("Search failed", error);
@@ -60,7 +65,13 @@ export default function CandidatesPage() {
                   
                   <div>
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Location</label>
-                    <input type="text" placeholder="e.g. New York, Remote" className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+                    <input 
+                      type="text" 
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="e.g. Lagos, Remote" 
+                      className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" 
+                    />
                   </div>
                   
                   <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-colors">

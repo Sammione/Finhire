@@ -43,20 +43,50 @@ export default function AnalyticsPage() {
 
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-            <MetricCard title="Time to Hire" value="18 Days" change="-4 days" positive />
-            <MetricCard title="Interview to Offer" value="24%" change="+2%" positive />
+            <MetricCard title="Time to Hire" value="14 Days" change="-4 days" positive />
+            <MetricCard 
+              title="Interview to Offer" 
+              value={funnel?.interviewed && funnel?.offered ? `${Math.round((funnel.offered / funnel.interviewed) * 100)}%` : "24%"} 
+              change="+2%" 
+              positive 
+            />
             <MetricCard title="Acceptance Rate" value="92%" change="+5%" positive />
-            <MetricCard title="Candidate Quality Index" value="8.2/10" change="+0.5" positive />
+            <MetricCard 
+              title="Candidate Quality Index" 
+              value={funnel?.avg_fintech_relevance ? `${(funnel.avg_fintech_relevance * 10).toFixed(1)}/10` : "8.2/10"} 
+              change="+0.5" 
+              positive 
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 mb-6">Hiring Funnel</h3>
               <div className="space-y-6">
-                <FunnelStep label="Sourced" value={funnel?.total_candidates || 0} percentage={100} color="bg-blue-600" />
-                <FunnelStep label="Screened" value={Math.round((funnel?.total_candidates || 0) * 0.36)} percentage={36} color="bg-blue-500" />
-                <FunnelStep label="Interviewed" value={Math.round((funnel?.total_candidates || 0) * 0.06)} percentage={6} color="bg-blue-400" />
-                <FunnelStep label="Offered" value={Math.round((funnel?.total_candidates || 0) * 0.01)} percentage={1} color="bg-blue-300" />
+                <FunnelStep 
+                  label="Sourced" 
+                  value={funnel?.sourced || 0} 
+                  percentage={100} 
+                  color="bg-blue-600" 
+                />
+                <FunnelStep 
+                  label="Screened" 
+                  value={funnel?.screened || 0} 
+                  percentage={funnel?.sourced ? Math.round((funnel.screened / funnel.sourced) * 100) : 0} 
+                  color="bg-blue-500" 
+                />
+                <FunnelStep 
+                  label="Interviewed" 
+                  value={funnel?.interviewed || 0} 
+                  percentage={funnel?.sourced ? Math.round((funnel.interviewed / funnel.sourced) * 100) : 0} 
+                  color="bg-blue-400" 
+                />
+                <FunnelStep 
+                  label="Offered" 
+                  value={funnel?.offered || 0} 
+                  percentage={funnel?.sourced ? Math.round((funnel.offered / funnel.sourced) * 100) : 0} 
+                  color="bg-blue-300" 
+                />
               </div>
             </div>
 
