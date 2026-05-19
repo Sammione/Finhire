@@ -50,7 +50,7 @@ class SearchService:
     def __init__(self):
         self.index_name = "candidates"
 
-    async def search_candidates(self, db: Any, query: str, filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+    async def search_candidates(self, db: Any, query: str, filters: Dict[str, Any] = None, page: int = 1) -> List[Dict[str, Any]]:
         """Perform real-time search with database storage and external discovery."""
         results = []
         
@@ -89,8 +89,8 @@ class SearchService:
 
         # 2. Pull real records from the net (Multi-source: LinkedIn, Indeed, GitHub)
         if clean_query and clean_query.strip() != "":
-            print(f"Searching net for: {clean_query} (location: {resolved_location})")
-            external_results = await external_search_service.search_candidates(clean_query, resolved_location)
+            print(f"Searching net for: {clean_query} (location: {resolved_location}) (page: {page})")
+            external_results = await external_search_service.search_candidates(clean_query, resolved_location, page=page)
             
             for er in external_results:
                 # Post-filter external results by location to ensure high relevance

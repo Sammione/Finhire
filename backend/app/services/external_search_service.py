@@ -61,18 +61,18 @@ class ExternalSearchService:
         self.serpapi_key = os.getenv("SERPAPI_API_KEY", "")
         self.rapidapi_key = os.getenv("RAPIDAPI_KEY", "")
 
-    async def search_candidates(self, query: str, location: str = "") -> List[Dict[str, Any]]:
+    async def search_candidates(self, query: str, location: str = "", page: int = 1) -> List[Dict[str, Any]]:
         """Main entry point to fetch real candidates from multiple net sources."""
         # Run both searches in parallel
-        github_task = self.search_github_candidates(query, location)
-        web_task = self.search_web_candidates(query, location)
+        github_task = self.search_github_candidates(query, location, page=page)
+        web_task = self.search_web_candidates(query, location, page=page)
         
         gh_results, web_results = await asyncio.gather(github_task, web_task)
         
         # Merge results, prioritizing web results for general roles
         return web_results + gh_results
 
-    async def search_web_candidates(self, query: str, location: str = "") -> List[Dict[str, Any]]:
+    async def search_web_candidates(self, query: str, location: str = "", page: int = 1) -> List[Dict[str, Any]]:
         """Search the web for professional profiles using SerpApi (Instant Search)."""
         if not query:
             return []
@@ -133,7 +133,8 @@ class ExternalSearchService:
                         "engine": "google",
                         "q": search_query,
                         "api_key": self.serpapi_key,
-                        "num": 20  # Get top 20 instantly
+                        "num": 20,
+                        "start": (page - 1) * 10
                     },
                     timeout=10.0
                 )
@@ -223,7 +224,7 @@ class ExternalSearchService:
                     
         return enriched
 
-    async def search_github_candidates(self, query: str, location: str = "") -> List[Dict[str, Any]]:
+    async def search_github_candidates(self, query: str, location: str = "", page: int = 1) -> List[Dict[str, Any]]:
         """Search GitHub for real professional profiles (best for tech)."""
         if not query:
             return []
@@ -237,7 +238,7 @@ class ExternalSearchService:
             try:
                 response = await client.get(
                     self.github_api_url,
-                    params={"q": search_query, "per_page": 5},
+                    params={"q": search_query, "per_page": 5, "page": page},
                     timeout=10.0
                 )
                 response.raise_for_status()

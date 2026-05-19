@@ -27,6 +27,7 @@ async def search_candidates(
     location: Optional[str] = None,
     skills: Optional[List[str]] = Query(None),
     min_score: float = 0.0,
+    page: int = Query(1, description="Page number"),
     db: Session = Depends(deps.get_db)
 ) -> Any:
     """
@@ -38,7 +39,7 @@ async def search_candidates(
     if skills:
         filters["skills"] = skills
         
-    results = await search_service.search_candidates(db, q or "", filters)
+    results = await search_service.search_candidates(db, q or "", filters, page=page)
     return results
 
 @router.get("/{candidate_id}")
