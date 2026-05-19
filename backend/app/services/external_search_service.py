@@ -60,10 +60,18 @@ class ExternalSearchService:
         self.github_user_url = "https://api.github.com/users"
         self.serpapi_key = os.getenv("SERPAPI_API_KEY", "")
         self.rapidapi_key = os.getenv("RAPIDAPI_KEY", "")
+        self.proxycurl_key = os.getenv("PROXYCURL_API_KEY", "")
 
     async def search_candidates(self, query: str, location: str = "", page: int = 1) -> List[Dict[str, Any]]:
         """Main entry point to fetch real candidates from multiple net sources."""
-        # Run both searches in parallel
+        # 1. If premium Proxycurl is configured, route through high-volume LinkedIn Search first
+        if self.proxycurl_key:
+            print(f"Proxycurl API Key detected. Fetching high-quality talent pool for {query}...")
+            proxycurl_results = await self.search_proxycurl_candidates(query, location, page=page)
+            if proxycurl_results:
+                return proxycurl_results
+                
+        # 2. Fall back to SerpApi + GitHub search if Proxycurl is not configured
         github_task = self.search_github_candidates(query, location, page=page)
         web_task = self.search_web_candidates(query, location, page=page)
         
@@ -273,6 +281,100 @@ class ExternalSearchService:
                 return candidates
             except Exception as e:
                 print(f"GitHub search error: {e}")
+                return []
+
+    async def search_proxycurl_candidates(self, query: str, location: str = "", page: int = 1) -> List[Dict[str, Any]]:
+        """
+        Use Nubela Proxycurl API to pull high-volume, structured LinkedIn profiles.
+        """
+        if not self.proxycurl_key:
+            return []
+            
+        candidates = []
+        country_code = "US"
+        city_filter = ""
+        
+        if location:
+            loc_lower = location.lower()
+            if "nigeria" in loc_lower or "lagos" in loc_lower or "abuja" in loc_lower:
+                country_code = "NG"
+            elif "london" in loc_lower or "uk" in loc_lower or "united kingdom" in loc_lower:
+                country_code = "GB"
+            elif "canada" in loc_lower or "toronto" in loc_lower:
+                country_code = "CA"
+                
+            city_filter = location.strip()
+
+        # Build search query title regex
+        title_regex = f"(?i){query}"
+        
+        headers = {"Authorization": f"Bearer {self.proxycurl_key}"}
+        params = {
+            "country": country_code.lower(),
+            "page_size": 20,
+            "enrich_profiles": "enrich" # Fetch enriched LinkedIn profiles directly in search results
+        }
+        if query:
+            params["title_filter"] = title_regex
+        if city_filter:
+            params["city_filter"] = f"(?i){city_filter}"
+            
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"Triggering Proxycurl Person Search API with params: {params}")
+                response = await client.get(
+                    "https://nubela.co/api/v1/linkedin/person/search",
+                    headers=headers,
+                    params=params,
+                    timeout=30.0
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    results = data.get("results", [])
+                    print(f"Proxycurl Person Search successfully fetched {len(results)} profile records.")
+                    
+                    for res in results:
+                        profile = res.get("profile", {})
+                        if not profile:
+                            continue
+                            
+                        first_name = profile.get("first_name", "Professional")
+                        last_name = profile.get("last_name", "Candidate")
+                        full_name = f"{first_name} {last_name}"
+                        headline = profile.get("headline") or f"{query} Professional"
+                        cand_loc = profile.get("city") or profile.get("state") or location or "Lagos, Nigeria"
+                        
+                        summary = profile.get("summary") or ""
+                        
+                        # Compile experience details
+                        experience_lines = []
+                        for exp in profile.get("experiences", [])[:3]:
+                            comp = exp.get("company", "Company")
+                            title = exp.get("title", "Role")
+                            desc = exp.get("description") or ""
+                            experience_lines.append(f"{title} at {comp}: {desc}")
+                            
+                        skills = [s.get("name") for s in profile.get("skills", [])[:5]] if profile.get("skills") else [query]
+                        
+                        candidates.append({
+                            "id": f"pc-{hash(profile.get('public_identifier', full_name))}",
+                            "full_name": full_name,
+                            "headline": headline,
+                            "location": cand_loc,
+                            "skills": skills,
+                            "summary": summary if summary else " / ".join(experience_lines[:2]),
+                            "experience_text": "\n".join(experience_lines),
+                            "match_score": "Analyzing..."
+                        })
+                        
+                    return candidates
+                else:
+                    print(f"Proxycurl API returned status {response.status_code}: {response.text}")
+                    return []
+                    
+            except Exception as e:
+                print(f"Proxycurl Search API Exception: {e}")
                 return []
 
 external_search_service = ExternalSearchService()
